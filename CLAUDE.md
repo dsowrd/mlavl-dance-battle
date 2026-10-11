@@ -174,7 +174,7 @@ CUDA_VISIBLE_DEVICES=0 $MLAVL_PY main.py ...
 
 **변경(2026-10-11): FS1000 feature는 Baidu Netdisk 전용이고 정현도는 Baidu 계정이 없다. 기본은 Fis-V(TES, PCS. PAMFN 배포에 포함)로 바꾼다.** FS1000은 저자(jingfeixia708@gmail.com)에게 메일로 요청해 두고, 출장 전에 받으면 추가한다.
 
-- [ ] Fis-V TES/PCS 학습 스크립트(`scripts/run_fisv.sh`, `--dataset fisv --clip-num 124 --dropout 0.7 --alpha 0.5 --alpha_ce 0.1`) 완성. 출장 중에는 RG·Fis-V 반복 실험(seed, lr)을 GPU 0/1/3에 큐 방식으로 배분
+- [x] Fis-V TES/PCS 학습 스크립트(`scripts/run_fisv.sh`) 완성. **앞당겨 실행: 2026-10-11 15:54 GPU 1에서 TES·PCS 동시 시작** (정현도 승인, tmux 세션 `mlavl_fisv`, 로그 `logs/stdout/fisv_*_1011_1554.log`). 출장 중에는 RG·Fis-V 반복 실험(seed, lr)을 GPU 0/1/3에 큐 방식으로 배분
 - [ ] (선택) FS1000 저자 메일 요청. 받으면 7개 점수 × `scripts/run_fs1000.sh`
 - [ ] 돌아와서 결과 표 작성. RG 원본 영상(ACTION-NET OneDrive)을 받을 수 있는지도 이 단계에서 확인
 
