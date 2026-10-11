@@ -1,7 +1,11 @@
+# Modified from MLAVL (Xu et al., CVPR 2025), https://github.com/XuHuangbiao/MLAVL
+# Changes: (1) ViFi-CLIP is only built when --use_clip is given; otherwise the precomputed text
+#          feature file (--text_feature, torch.save format) is loaded once into a buffer.
+#          (2) removed hard-coded .cuda() on w1/weight_AV/weight_V/edge_index so the model follows .to(device).
 from torch import nn
 import torch
+import os
 from models.transformer import Transformer
-from models.vificlip import returnCLIP
 from torch_geometric.nn import GCNConv, SAGEConv, GATConv
 import math
 from torch.autograd import Variable
@@ -120,11 +124,29 @@ class MLAVL(nn.Module):
 
         self.pos_encoder = PositionalEncoding(hidden_dim)
 
-        self.w1 = nn.Parameter((torch.ones(1) * 0.5).cuda().requires_grad_())
-        self.weight_AV = torch.linspace(0, 1, self.n_query * 2, requires_grad=False).cuda()
-        self.weight_V = torch.linspace(0, 1, self.n_query, requires_grad=False).cuda()
+        self.w1 = nn.Parameter(torch.ones(1) * 0.5)
+        self.register_buffer('weight_AV', torch.linspace(0, 1, self.n_query * 2))
+        self.register_buffer('weight_V', torch.linspace(0, 1, self.n_query))
 
-        self.CLIP = returnCLIP(config, class_names=class_names, )  # This can be commented out after extracting the text features.
+        # Text features: either run ViFi-CLIP (upstream default) or load the precomputed file.
+        if getattr(config, 'use_clip', False):
+            from models.vificlip import returnCLIP
+            self.CLIP = returnCLIP(config, class_names=class_names, )
+            self.text_feature = None
+        else:
+            self.CLIP = None
+            tf_path = getattr(config, 'text_feature', None)
+            if tf_path is None:
+                tf_path = {'fs1000': './FS_text_feature.npy', 'fisv': './FS_text_feature.npy',
+                           'rg': './RG_text_feature.npy', 'logo': './LOGO_text_feature.npy'}[getattr(config, 'dataset', 'fs1000')]
+            if not os.path.isfile(tf_path):
+                raise FileNotFoundError(f'text feature not found: {tf_path} (pass --text_feature or --use_clip)')
+            tf = torch.load(tf_path, map_location='cpu', weights_only=True).float()  # (2*n_text + 3*n_query, 512)
+            expected = 2 * self.n_text + 3 * self.n_query
+            if tf.shape[0] != expected:
+                raise ValueError(f'{tf_path} has {tf.shape[0]} rows but --n_text {self.n_text} / --n_query {self.n_query} '
+                                 f'expect {expected} (= 2*n_text + 3*n_query). Check --n_text (FS 42, RG 32).')
+            self.register_buffer('text_feature', tf)
         self.gcn_V = MAGG_Module(hidden_dim, hidden_dim // 2, config.dropout)
         self.gcn_A = MAGG_Module(hidden_dim, hidden_dim // 2, config.dropout)
 
@@ -146,7 +168,7 @@ class MLAVL(nn.Module):
         encode_audio = encode_audio + audio
 
         # Get Text Feature
-        text_feature = self.CLIP()  # Or text_feature = torch.load('FS_text_feature.npy', weights_only=True).cuda()
+        text_feature = self.CLIP() if self.CLIP is not None else self.text_feature
         text_feature = text_feature.unsqueeze(0)
         text_feature = self.proj_text(text_feature.transpose(1, 2)).transpose(1, 2)
         text_feature = text_feature.repeat(b, 1, 1)
@@ -170,7 +192,7 @@ class MLAVL(nn.Module):
         for i in range(num_nodes):
             for j in range(num_nodes2):
                 edges.append([num_nodes + j, i])
-        edge_index = torch.tensor(edges, dtype=torch.long).t().contiguous().cuda()
+        edge_index = torch.tensor(edges, dtype=torch.long, device=visual.device).t().contiguous()
 
         fusion_TV = torch.cat([encode_visual, text_fea_TV], 1)
         mixed = []
