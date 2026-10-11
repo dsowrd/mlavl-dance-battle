@@ -30,6 +30,7 @@ Average ρ: report both arithmetic mean and Fisher-z mean.
 | 2026-10-11 | d092717 | RG / Ribbon | `scripts/run_rg.sh Ribbon 0` (710 ep) | 0 (4 concurrent) | 1:41:04 | ~1.8 GB (RSS 1.6 GB) | 0.792 (355), MSE 5.39 | 5.36 (354), ρ 0.789 | paper 0.866 / 3.99 |
 | 2026-10-11 | d092717 | **RG / Avg** | paper settings, seed 0, 1 run each | 0 | 4 runs in 1:41 wall | | **0.778** (arithmetic) / **0.778** (Fisher z) | **4.98** (mean of best-MSE ckpts); 6.02 at the best-ρ ckpts | paper 0.849 / 4.47 → ρ −0.071, MSE +0.51. Logs `logs/stdout/rg_*_1011_1548.log`, ckpts backed up to `/data/mlavl/ckpt_backup/`. Suspected causes below |
 | 2026-10-11 | 394eed5 | RG / Ball,Clubs,Hoop,Ribbon | as above + `--lr 1e-2` (README lr) | 0 (4 concurrent) | running since 17:31 | | | | lr comparison run, logs `logs/stdout/rg_*_1011_1731.log` |
+| 2026-10-11 | 1c0f97c | RG / Ball,Clubs,Hoop,Ribbon | paper settings, `SEED=1` then `SEED=2` (`--seed`) | 3 (4 concurrent, seeds sequential) | running since 17:36 | | | | seed repeats, logs `logs/stdout/rg_*_s{1,2}_1011_*.log`. Approved by 정현도 ("GPU 3에서 seed 1, 2도 돌려") |
 
 Suspected causes of the RG gap (to check in order):
 
