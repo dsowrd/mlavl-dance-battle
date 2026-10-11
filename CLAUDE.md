@@ -158,11 +158,15 @@ CUDA_VISIBLE_DEVICES=0 $MLAVL_PY main.py ...
 - [x] 브레이킹 무브 어휘 초안 `ours/vocab/action-label_BREAKING.csv` (36 moves, `--n_text 36`). 정현도 검토 전
 - [x] HDD 마운트 → `MLAVL_DATA=/data/mlavl` (2026-10-11)
 - [x] BRACE release(keypoint, audio feature) + annotations, 올림픽 2024 결과집 PDF를 `/data/mlavl/datasets/`에 다운로드 (Phase 4 선행)
-- [ ] RG·Fis-V feature(PAMFN OneDrive) 다운로드 → **브라우저 필요. 정현도가 노트북에서 받아 `/data/mlavl/features/`로 scp** → 파일 구조·`--in_dim` 확인
+- [x] RG·Fis-V feature(PAMFN) 다운로드 완료 (정현도가 브라우저로 받음, 2026-10-11). `/data/mlavl/features/pamfn_release.zip`(4.0GB 원본 보관) → `pamfn_data/`에 압축 해제, `features/RG/`, `features/FISV/`에 MLAVL이 기대하는 이름으로 symlink
+  - **확인된 구조**: `{App}_rgb_VST.npy` = `{video_id: (T, 1024)}`, `{App}_audio_AST.npy` = `(T, 768)`, T는 RG 68–77, Fis-V 124–302. RG 기구당 train 200 / test 50, Fis-V train 400 / test 100. flow(I3D 1024), UMT, MAST feature도 들어 있으나 MLAVL은 쓰지 않음
+  - **`--in_dim 1024` 필수** (README의 768은 이 파일과 맞지 않음). `--clip-num` 68 / 124는 최단 영상 길이와 일치
+  - 추가로 고친 upstream 버그 2개(`datasets.py`): RGDataset이 `args.score_range`를 안 넣어 test에서 크래시, FisVDataset이 헤더 없는 PAMFN txt의 첫 줄(영상 1, 2)을 버림
 
 ### Phase 1 · RG 재현 (10/14–10/25)
 
 - [ ] RG 4개 기구 학습(논문 설정). 기구마다 학습 시간과 최대 VRAM을 기록
+  - 2026-10-11 15:48 시작: `scripts/run_rg.sh {Ball,Clubs,Hoop,Ribbon} 0`을 tmux 세션 `mlavl_rg`(창 이름 = 기구)에서 GPU 0에 4개 동시 실행. 로그 `logs/stdout/rg_*_1011_1548.log`. 단독 실행 시 epoch당 약 5초, 4개 동시 실행 시 약 15–20초, 프로세스당 VRAM 약 1.8GB. 결과 집계는 `scripts/summarize_runs.py`
 - [ ] 목표 수치와 비교표 작성 (`experiments/EXPERIMENTS.md`)
 - [ ] README lr(1e-2)과 논문 lr 차이 실험 1회
 
