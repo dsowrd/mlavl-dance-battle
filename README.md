@@ -23,16 +23,16 @@ Ours (new files; commits prefixed `feat:` / `data:` / `exp:` / `docs:`):
 ## Reproduction results
 
 Full per-run details (commit, GPU, wall time, best epochs, suspected causes of gaps) are in `experiments/EXPERIMENTS.md`.
-Ours = single run, seed 0, paper hyper-parameters, public PAMFN features (1024-d Video Swin RGB + 768-d AST audio).
+Ours = paper hyper-parameters, public PAMFN features (1024-d Video Swin RGB + 768-d AST audio); RG rows are mean ± std over seeds 0, 1, 2, Fis-V rows are seed 0 until the seed repeats finish.
 ρ is the best test Spearman correlation over epochs; MSE is the best test MSE over epochs (both as tracked by the upstream code).
 
 | Data | Paper ρ / MSE | Ours ρ / MSE | Note |
 | --- | --- | --- | --- |
-| RG Ball | 0.826 / 5.57 | 0.754 / 5.42 | |
-| RG Clubs | 0.829 / 4.20 | 0.785 / 4.47 | |
-| RG Hoop | 0.871 / 4.11 | 0.780 / 4.68 | |
-| RG Ribbon | 0.866 / 3.99 | 0.792 / 5.36 | |
-| **RG avg** | **0.849 / 4.47** | **0.778 / 4.98** | arithmetic = Fisher-z mean. README's `--in_dim 768` suggests the authors used different RGB features from the public 1024-d ones |
+| RG Ball | 0.826 / 5.57 | 0.758 ± 0.009 / 5.52 ± 0.17 | 3 seeds |
+| RG Clubs | 0.829 / 4.20 | 0.749 ± 0.041 / 5.08 ± 0.61 | 3 seeds |
+| RG Hoop | 0.871 / 4.11 | 0.786 ± 0.035 / 4.73 ± 0.47 | 3 seeds |
+| RG Ribbon | 0.866 / 3.99 | 0.808 ± 0.030 / 5.05 ± 0.60 | 3 seeds |
+| **RG avg** | **0.849 / 4.47** | **0.775 / 5.10** | mean over seeds 0, 1, 2 then over apparatus; Fisher-z mean ρ 0.776. README's `--in_dim 768` suggests the authors used different RGB features from the public 1024-d ones |
 | Fis-V TES | 0.766 / 19.44 | 0.723 / 20.65 | best ρ at epoch 56 of 420 |
 | Fis-V PCS | 0.863 / 7.17 | 0.852 / 8.00 | |
 | **Fis-V avg** | **0.823 / 13.31** | **0.787 / 14.33** | Fisher-z mean ρ 0.796 |

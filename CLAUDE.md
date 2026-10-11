@@ -169,8 +169,8 @@ CUDA_VISIBLE_DEVICES=0 $MLAVL_PY main.py ...
   - 2026-10-11 15:48 시작: `scripts/run_rg.sh {Ball,Clubs,Hoop,Ribbon} 0`을 tmux 세션 `mlavl_rg`(창 이름 = 기구)에서 GPU 0에 4개 동시 실행. 로그 `logs/stdout/rg_*_1011_1548.log`. 단독 실행 시 epoch당 약 5초, 4개 동시 실행 시 약 15–20초, 프로세스당 VRAM 약 1.8GB. 결과 집계는 `scripts/summarize_runs.py`
 - [ ] 목표 수치와 비교표 작성 (`experiments/EXPERIMENTS.md`)
 - [x] README lr(1e-2)과 논문 lr 차이 실험 1회 — 2026-10-11 17:31 GPU 0에서 4개 기구 실행, 72–80 epoch에서 test ρ 0.26–0.41로 학습이 안 돼 17:50에 중단(정현도 결정). 논문 lr 1e-4를 쓴다
-- [ ] seed 1, 2 반복 (`--seed` 인자 추가, 커밋 1c0f97c) — 2026-10-11 17:36 GPU 3에서 기구별로 seed 1 → 2 순차 실행 중 (tmux `mlavl_rg_seed`, 로그 `logs/stdout/rg_*_s{1,2}_*.log`)
-- 1차 결과(seed 0, 논문 설정): 평균 ρ 0.778 / MSE 4.98 (논문 0.849 / 4.47). 상세와 추정 원인은 `experiments/EXPERIMENTS.md`
+- [x] seed 1, 2 반복 (`--seed` 인자 추가, 커밋 1c0f97c) — 2026-10-11 GPU 3, 21:10 완료. 로그 `logs/stdout/rg_*_s{1,2}_*.log`
+- **결과(seed 0·1·2 평균, 논문 설정): 평균 ρ 0.775 / MSE 5.10 (논문 0.849 / 4.47).** seed 0만은 0.778 / 4.98. 기구별 seed 표준편차 ρ 0.01–0.04. 상세와 추정 원인은 `experiments/EXPERIMENTS.md`
 
 ### Phase 2 · Fis-V 재현 (+ FS1000은 구하면) (출장 기간 10/26–10/31에 무인 실행)
 
