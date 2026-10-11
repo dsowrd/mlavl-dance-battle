@@ -22,12 +22,20 @@ Ours (new files; commits prefixed `feat:` / `data:` / `exp:` / `docs:`):
 
 ## Reproduction results
 
-See `experiments/EXPERIMENTS.md`. Paper numbers vs. ours will be tabulated here once Phase 1/2 runs finish.
+Full per-run details (commit, GPU, wall time, best epochs, suspected causes of gaps) are in `experiments/EXPERIMENTS.md`.
+Ours = single run, seed 0, paper hyper-parameters, public PAMFN features (1024-d Video Swin RGB + 768-d AST audio).
+ρ is the best test Spearman correlation over epochs; MSE is the best test MSE over epochs (both as tracked by the upstream code).
 
-| Data | Paper ρ / MSE | Ours ρ / MSE |
-| --- | --- | --- |
-| RG (avg) | 0.849 / 4.47 | – |
-| FS1000 (avg) | 0.90 / 10.39 | – |
+| Data | Paper ρ / MSE | Ours ρ / MSE | Note |
+| --- | --- | --- | --- |
+| RG Ball | 0.826 / 5.57 | 0.754 / 5.42 | |
+| RG Clubs | 0.829 / 4.20 | 0.785 / 4.47 | |
+| RG Hoop | 0.871 / 4.11 | 0.780 / 4.68 | |
+| RG Ribbon | 0.866 / 3.99 | 0.792 / 5.36 | |
+| **RG avg** | **0.849 / 4.47** | **0.778 / 4.98** | arithmetic = Fisher-z mean. README's `--in_dim 768` suggests the authors used different RGB features from the public 1024-d ones |
+| Fis-V TES | 0.766 / 19.44 | running | |
+| Fis-V PCS | 0.863 / 7.17 | running | |
+| FS1000 (avg) | 0.90 / 10.39 | – | features are Baidu-only; not obtained |
 
 ## Acknowledgements
 
