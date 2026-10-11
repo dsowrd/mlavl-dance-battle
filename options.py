@@ -1,5 +1,5 @@
 # Modified from MLAVL (Xu et al., CVPR 2025), https://github.com/XuHuangbiao/MLAVL
-# Changes: add --dataset, --text_feature, --use_clip, --alpha_ce so RG/Fis-V/LOGO can be selected
+# Changes: add --dataset, --text_feature, --use_clip, --alpha_ce, --seed so RG/Fis-V/LOGO can be selected
 #          and the model runs without ViFi-CLIP weights (precomputed text features are loaded instead).
 import argparse
 
@@ -72,4 +72,5 @@ parser.add_argument('--use_clip', action='store_true',
                     help='re-enable the ViFi-CLIP text encoder (needs --pretrained_clip_weight) instead of --text_feature')
 parser.add_argument('--alpha_ce', type=float, default=0.01,
                     help='weight of the label-smoothing CE loss (paper: 0.01 FS1000, 0.1 Fis-V/RG; upstream fixed 0.01)')
+parser.add_argument('--seed', type=int, default=0, help='random seed (upstream hard-coded 0)')
 parser.add_argument('--score_range', type=int, default=None)

@@ -1,6 +1,6 @@
 # Modified from MLAVL (Xu et al., CVPR 2025), https://github.com/XuHuangbiao/MLAVL
 # Changes: choose the Dataset class with --dataset (upstream hard-coded FS1000Dataset);
-#          pass --alpha_ce to the loss; print/record the resolved args.
+#          pass --alpha_ce to the loss; --seed instead of the hard-coded setup_seed(0); print/record the resolved args.
 import torch
 import numpy as np
 import options
@@ -57,7 +57,7 @@ def get_scheduler(optim, args):
 
 if __name__ == '__main__':
     args = options.parser.parse_args()
-    setup_seed(0)
+    setup_seed(args.seed)
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     '''
