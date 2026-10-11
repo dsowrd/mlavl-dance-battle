@@ -1,3 +1,6 @@
+# Modified from MLAVL (Xu et al., CVPR 2025), https://github.com/XuHuangbiao/MLAVL
+# Changes: choose the Dataset class with --dataset (upstream hard-coded FS1000Dataset);
+#          pass --alpha_ce to the loss; print/record the resolved args.
 import torch
 import numpy as np
 import options
@@ -63,9 +66,13 @@ if __name__ == '__main__':
     '''
     train data
     '''
-    train_data = FS1000Dataset(args.video_path, args.audio_path, args.train_label_path, args.action_list,
-                               clip_num=args.clip_num,
-                               action_type=args.action_type, args=args)
+    DATASETS = {'fs1000': FS1000Dataset, 'fisv': FisVDataset, 'rg': RGDataset, 'logo': LOGODataset}
+    DatasetCls = DATASETS[args.dataset]
+    if args.dataset == 'logo':
+        raise NotImplementedError('LOGODataset has a different signature (video only); not wired up in this project.')
+    train_data = DatasetCls(args.video_path, args.audio_path, args.train_label_path, args.action_list,
+                            clip_num=args.clip_num,
+                            action_type=args.action_type, args=args)
     train_loader = DataLoader(train_data, batch_size=args.batch, shuffle=True, num_workers=8)
     class_names = [class_name for class_name in train_data.classes]
     print(len(train_data))
@@ -75,9 +82,9 @@ if __name__ == '__main__':
     '''
     test data
     '''
-    test_data = FS1000Dataset(args.video_path, args.audio_path, args.test_label_path, args.action_list,
-                              clip_num=args.clip_num,
-                              action_type=args.action_type, train=False, args=args)
+    test_data = DatasetCls(args.video_path, args.audio_path, args.test_label_path, args.action_list,
+                           clip_num=args.clip_num,
+                           action_type=args.action_type, train=False, args=args)
     test_loader = DataLoader(test_data, batch_size=args.batch, shuffle=False, num_workers=8)
     print('=============Load dataset successfully=============')
 
@@ -95,7 +102,7 @@ if __name__ == '__main__':
             enabled.add(name)
     print(f"Parameters to be updated: {enabled}")
     print(f"Total learnable items: {len(enabled)}")
-    loss_fn = loss.LossFun(args.alpha, args.margin)
+    loss_fn = loss.LossFun(args.alpha, args.margin, alpha_ce=args.alpha_ce)
     train_fn = train.train_epoch
     if args.ckpt is not None:
         checkpoint = torch.load('./ckpt/' + args.ckpt + '.pkl')

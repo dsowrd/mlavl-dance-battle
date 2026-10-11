@@ -1,3 +1,6 @@
+# Modified from MLAVL (Xu et al., CVPR 2025), https://github.com/XuHuangbiao/MLAVL
+# Changes: add --dataset, --text_feature, --use_clip, --alpha_ce so RG/Fis-V/LOGO can be selected
+#          and the model runs without ViFi-CLIP weights (precomputed text features are loaded instead).
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -59,4 +62,14 @@ parser.add_argument('--PROMPT_DEPTH_TEXT', type=int, default=1)
 parser.add_argument('--pretrained_clip_weight', type=str,
                     default='./weights/k400_clip_complete_finetuned_30_epochs.pth')
 parser.add_argument('--action_list', type=str, default='./action-label_FS.csv')
+# ---- added for this project (see header) ----
+parser.add_argument('--dataset', type=str, default='fs1000', choices=['fs1000', 'fisv', 'rg', 'logo'],
+                    help='which Dataset class in datasets.py to use (upstream hard-coded FS1000Dataset)')
+parser.add_argument('--text_feature', type=str, default=None,
+                    help='precomputed CLIP text feature (torch.save file, e.g. ./RG_text_feature.npy). '
+                         'Default: picked by --dataset (FS_/RG_/LOGO_text_feature.npy)')
+parser.add_argument('--use_clip', action='store_true',
+                    help='re-enable the ViFi-CLIP text encoder (needs --pretrained_clip_weight) instead of --text_feature')
+parser.add_argument('--alpha_ce', type=float, default=0.01,
+                    help='weight of the label-smoothing CE loss (paper: 0.01 FS1000, 0.1 Fis-V/RG; upstream fixed 0.01)')
 parser.add_argument('--score_range', type=int, default=None)

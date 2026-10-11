@@ -1,3 +1,5 @@
+# Modified from MLAVL (Xu et al., CVPR 2025), https://github.com/XuHuangbiao/MLAVL
+# Changes: expose the CE-loss weight (alpha_ce) as a constructor argument instead of the fixed 0.01.
 import torch
 from torch import nn
 from models.triplet_loss import HardTripletLoss
@@ -23,7 +25,7 @@ class InfoNCELoss(nn.Module):
 
 # 各种分布特征聚合
 class LossFun(nn.Module):
-    def __init__(self, alpha, margin):
+    def __init__(self, alpha, margin, alpha_ce=0.01):
         super(LossFun, self).__init__()
         self.mse_loss = nn.MSELoss()
         # self.mse_loss = nn.L1Loss()
@@ -31,7 +33,7 @@ class LossFun(nn.Module):
         self.ce_loss = LabelSmoothingCrossEntropy(smoothing=0.1).cuda()
         # self.infonce_loss = InfoNCELoss()
         self.alpha = alpha
-        self.alpha_ce = 0.01
+        self.alpha_ce = alpha_ce
 
     def forward(self, pred, label, feat, feat2, feat3, feat4, feat5, feat6, clip, clip2, args):
         # feat (b, n, c), x (b, t, c)
