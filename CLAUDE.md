@@ -178,9 +178,10 @@ CUDA_VISIBLE_DEVICES=0 $MLAVL_PY main.py ...
 
 - [x] Fis-V TES/PCS 학습 스크립트(`scripts/run_fisv.sh`) 완성. **앞당겨 실행: 2026-10-11 15:54 GPU 1에서 TES·PCS 동시 시작** (정현도 승인, tmux 세션 `mlavl_fisv`, 로그 `logs/stdout/fisv_*_1011_1554.log`). 출장 중에는 RG·Fis-V 반복 실험(seed, lr)을 GPU 0/1/3에 큐 방식으로 배분
   - seed 0 결과(2026-10-11 19:40 종료): TES ρ 0.723 / MSE 20.65, PCS 0.852 / 8.00, 평균 ρ 0.787 (논문 0.766 / 19.44, 0.863 / 7.17, 평균 0.823). 2개 동시 실행 시 약 3.7시간
-  - seed 1, 2 반복: seed 1은 2026-10-11 17:47 GPU 0에서 실행 중(tmux `mlavl_fisv_s1`), seed 2는 GPU 3에 큐 등록(RG seed 실행이 모두 끝나 GPU 3이 비면 자동 시작, tmux `mlavl_fisv_s2`). GPU 1은 seed 0이 끝나면 빈다. 로그 `logs/stdout/fisv_*_s{1,2}_*.log`
+  - seed 1(GPU 0), seed 2(GPU 3) 완료 2026-10-12 00:15. **3-seed 평균: TES ρ 0.723 ± 0.013 / MSE 20.77, PCS 0.852 ± 0.006 / 7.93, 평균 ρ 0.788 / MSE 14.35 (논문 0.823 / 13.31).** PCS는 거의 재현, TES만 −0.043. 로그 `logs/stdout/fisv_*_s{1,2}_*.log`
+- [x] Fis-V 결과 표 작성 (`experiments/EXPERIMENTS.md`, README). 출장 전에 재현 단계는 사실상 끝났으므로 출장 기간 GPU는 Phase 3 ablation에 쓸 수 있다
 - [ ] (선택) FS1000 저자 메일 요청. 받으면 7개 점수 × `scripts/run_fs1000.sh`
-- [ ] 돌아와서 결과 표 작성. RG 원본 영상(ACTION-NET OneDrive)을 받을 수 있는지도 이 단계에서 확인
+- [ ] RG 원본 영상(ACTION-NET OneDrive)을 받을 수 있는지 확인
 
 ### Phase 3 · 중간발표용 1차 개선 (11/1–11/9, 공개 feature만 사용)
 

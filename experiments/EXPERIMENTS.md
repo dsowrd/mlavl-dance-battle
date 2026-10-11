@@ -69,5 +69,20 @@ Suspected causes of the RG gap (to check in order):
 | 2026-10-11 | 93a141b | Fis-V / TES | `scripts/run_fisv.sh TES 1` (paper: lr 3e-4, dropout 0.7, α 0.5, α_ce 0.1, clip 124, in_dim 1024, 420 ep, seed 0) | 1 (2 concurrent) | 3:36:15 | ~2.7 GB (RSS 2.0 GB) | 0.723 (56), MSE at that ckpt 25.73 | 20.65 (165), ρ at that ckpt 0.667 | paper 0.766 / 19.44. Best ρ at ep 56 of 420, afterwards 0.63–0.67 (train ρ 0.99): over-fits early |
 | 2026-10-11 | 93a141b | Fis-V / PCS | `scripts/run_fisv.sh PCS 1` (440 ep, seed 0) | 1 (2 concurrent) | 3:45:42 | ~2.7 GB (RSS 1.9 GB) | 0.852 (48), MSE 8.00 | 8.00 (48), ρ 0.852 | paper 0.863 / 7.17. Close to the paper; best at ep 48, then 0.78–0.83 |
 | 2026-10-11 | 93a141b | **Fis-V / Avg** | seed 0 | 1 | | | **0.787** (arithmetic) / **0.796** (Fisher z) | **14.33** (mean of best-MSE ckpts); 16.86 at the best-ρ ckpts | paper 0.823 / 13.31 → ρ −0.036, MSE +1.0. Logs `logs/stdout/fisv_*_1011_1554.log`, ckpts in `/data/mlavl/ckpt_backup/`. Fis-V gap is smaller than RG's (−0.071): Fis-V has 400 training videos vs 200, and the feature question (in_dim 768 vs 1024) applies here too since the README also says 768 |
-| 2026-10-11 | f6fc37b | Fis-V / TES, PCS | paper settings, `SEED=1` | 0 (2 concurrent) | running since 17:47 | | | | seed 1 moved to the freed GPU 0 (정현도: "GPU 0 비었으니 Fis-V seed 1 거기서 돌려"), tmux `mlavl_fisv_s1`, logs `logs/stdout/fisv_*_s1_1011_1747.log` |
-| 2026-10-11 | 32277bf | Fis-V / TES, PCS | paper settings, `SEED=2` | 3 (queued: starts when the RG seed runs on GPU 3 are all finished, expected ~22:00) | queued 18:15 | | | | moved from the GPU 1 queue (정현도: "GPU 3 비면 Fis-V seed 2도 거기서 돌려"), tmux `mlavl_fisv_s2`, logs `logs/stdout/fisv_*_s2_*.log`. Approved by 정현도 ("Fis-V도 seed 1, 2 추가해") |
+| 2026-10-11 | f6fc37b | Fis-V / TES s1 | paper settings, `SEED=1` | 0 (2 concurrent) | 3:28:04 | ~2.7 GB (RSS 2.1 GB) | 0.736 (16), MSE 36.59 | 21.34 (63), ρ 0.684 | best ρ at epoch 16 (!), very noisy early peak; logs `logs/stdout/fisv_*_s1_1011_1747.log` |
+| 2026-10-11 | f6fc37b | Fis-V / PCS s1 | `SEED=1` | 0 (2 concurrent) | 3:36:22 | ~2.7 GB (RSS 2.0 GB) | 0.847 (65), MSE 10.59 | 8.29 (64), ρ 0.826 | |
+| 2026-10-11 | f9d91f2 | Fis-V / TES s2 | `SEED=2` | 3 (2 concurrent) | 2:57:23 | ~2.7 GB (RSS 1.8 GB) | 0.711 (45), MSE 27.34 | 20.30 (123), ρ 0.683 | started 21:10 after the RG seed runs freed GPU 3; logs `logs/stdout/fisv_*_s2_1011_2110.log` |
+| 2026-10-11 | f9d91f2 | Fis-V / PCS s2 | `SEED=2` | 3 (2 concurrent) | 3:04:31 | ~2.7 GB (RSS 1.9 GB) | 0.858 (50), MSE 9.01 | 7.52 (248), ρ 0.834 | best Fis-V PCS run |
+
+**Fis-V, 3 seeds (0, 1, 2), paper settings.** `scripts/summarize_runs.py --seeds logs/stdout/fisv_*_1011_1554.log logs/stdout/fisv_*_s[12]_*.log`
+
+| Score | paper ρ | ours ρ, mean ± std | paper MSE | ours best MSE, mean ± std | ours MSE at best-ρ ckpt |
+| --- | --- | --- | --- | --- | --- |
+| TES | 0.766 | 0.723 ± 0.013 | 19.44 | 20.77 ± 0.53 | 29.89 ± 5.86 |
+| PCS | 0.863 | 0.852 ± 0.006 | 7.17 | 7.93 ± 0.39 | 9.20 ± 1.30 |
+| **Avg** | **0.823** | **0.788** (Fisher z 0.797) | **13.31** | **14.35** | 19.54 |
+
+- Seed spread is much smaller than on RG (±0.006–0.013 ρ): 400 training / 100 test videos vs 200 / 50.
+- PCS reproduces within 0.011 ρ; TES is 0.043 below the paper in every seed. TES (technical element score) depends on recognising specific jumps/spins, which is where the authors' text-guided features would matter most and where a feature mismatch (README `--in_dim 768` vs public 1024-d VST) would hurt most.
+- Best-ρ epochs are very early (16–65 of 420/440) and the MSE at those checkpoints is poor (TES 26–37); after epoch ~100 the model has train ρ 0.99 and test ρ settles 0.03–0.08 below the early peak. Fewer epochs or stronger regularisation is the first thing to try in Phase 3; the early peaks also mean the "best ρ" protocol is optimistic and noisy.
+- All `_best` / `_best_mse` ckpts backed up to `/data/mlavl/ckpt_backup/` (975 MB total so far).
