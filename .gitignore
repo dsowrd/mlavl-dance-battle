@@ -1,0 +1,42 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+
+# ---- training artifacts (upstream layout) ----
+ckpt/
+logs/
+runs/
+weights/
+*.pkl
+*.pth
+*.pt
+
+# ---- large data: never commit features, videos, frames, datasets ----
+data/
+features/
+frames/
+videos/
+downloads/
+*.mp4
+*.mkv
+*.webm
+*.wav
+*.npy
+*.npz
+*.h5
+*.hdf5
+
+# Exception: the small precomputed CLIP text features shipped by upstream MLAVL
+!FS_text_feature.npy
+!RG_text_feature.npy
+!LOGO_text_feature.npy
+
+# ---- misc ----
+.DS_Store
+*.swp
+*.log
+.env
+.vscode/
+.idea/
