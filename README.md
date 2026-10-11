@@ -33,8 +33,9 @@ Ours = single run, seed 0, paper hyper-parameters, public PAMFN features (1024-d
 | RG Hoop | 0.871 / 4.11 | 0.780 / 4.68 | |
 | RG Ribbon | 0.866 / 3.99 | 0.792 / 5.36 | |
 | **RG avg** | **0.849 / 4.47** | **0.778 / 4.98** | arithmetic = Fisher-z mean. README's `--in_dim 768` suggests the authors used different RGB features from the public 1024-d ones |
-| Fis-V TES | 0.766 / 19.44 | running | |
-| Fis-V PCS | 0.863 / 7.17 | running | |
+| Fis-V TES | 0.766 / 19.44 | 0.723 / 20.65 | best ρ at epoch 56 of 420 |
+| Fis-V PCS | 0.863 / 7.17 | 0.852 / 8.00 | |
+| **Fis-V avg** | **0.823 / 13.31** | **0.787 / 14.33** | Fisher-z mean ρ 0.796 |
 | FS1000 (avg) | 0.90 / 10.39 | – | features are Baidu-only; not obtained |
 
 ## Acknowledgements
