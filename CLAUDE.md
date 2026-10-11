@@ -124,7 +124,8 @@
   - 결과와 데이터는 서버에만 두지 말고 **NAS에도 백업**한다.
 - 저장공간:
   - 루트 SSD(409GB, 여유 약 25GB): conda 환경(`mlavl` 5.5GB), 코드, 체크포인트. **여유가 거의 없다.** 공개 feature도 HDD에 둔다
-  - HDD 3.7TB(`/dev/sdb1`): 공개 feature, 원본 영상, 프레임, 대용량 중간 산출물. **sudo로 마운트해야 한다** (예: `sudo mkdir -p /data && sudo mount /dev/sdb1 /data && sudo chown irl:irl /data`, fstab 등록은 UUID `2f54f02a-274b-43d3-9ea3-56045d5063da`). 마운트 경로가 정해지면 `scripts/env.sh`의 `MLAVL_DATA`를 맞춘다
+  - HDD 3.7TB(`/dev/sdb1`) → **`/data`에 마운트됨 (2026-10-11, 정현도).** 단 여유는 111GB뿐이다(다른 사람 자료 `/data/irl`, `/data/docker-data`가 3.3TB 차지. 건드리지 않는다). **fstab에 없어서 재부팅하면 풀린다.** 등록하려면 `UUID=2f54f02a-274b-43d3-9ea3-56045d5063da /data ext4 defaults,nofail 0 2` 한 줄을 sudo로 추가
+  - 우리 데이터 루트 `MLAVL_DATA=/data/mlavl`: `features/{RG,FISV,FS1000}`, `videos/`, `frames/`, `datasets/{brace,olympics2024}`, `ckpt_backup/`
   - NAS: 서버에 마운트되어 있지 않다(fstab·mount에 NFS/CIFS 없음). 주소를 받으면 확인
 - 외부 인터넷: github, pypi, PyTorch/PyG wheel 인덱스, YouTube, Google Drive 모두 접근 가능 (프록시 없음)
 - 공유 서버이므로 장시간 학습은 `tmux` 또는 `nohup`으로 띄우고, Claude Code 세션이 끝나도 계속 돌게 한다.
@@ -155,8 +156,9 @@ CUDA_VISIBLE_DEVICES=0 $MLAVL_PY main.py ...
 - [x] 3절의 함정 처리: `--dataset` 인자, CLIP 제거 + 텍스트 feature 로드(`--text_feature`, `--use_clip`), CE 가중치 인자(`--alpha_ce`). `scripts/smoke_test.py`로 RG/FS1000 설정 forward+backward 확인
 - [x] `.gitignore`, `experiments/EXPERIMENTS.md`, `scripts/env.sh` 추가. 커밋돼 있던 `__pycache__` 추적 해제
 - [x] 브레이킹 무브 어휘 초안 `ours/vocab/action-label_BREAKING.csv` (36 moves, `--n_text 36`). 정현도 검토 전
-- [ ] HDD 마운트(사람, sudo) → `MLAVL_DATA` 경로 확정
-- [ ] RG feature 다운로드(HDD), 파일 구조 확인
+- [x] HDD 마운트 → `MLAVL_DATA=/data/mlavl` (2026-10-11)
+- [x] BRACE release(keypoint, audio feature) + annotations, 올림픽 2024 결과집 PDF를 `/data/mlavl/datasets/`에 다운로드 (Phase 4 선행)
+- [ ] RG·Fis-V feature(PAMFN OneDrive) 다운로드 → **브라우저 필요. 정현도가 노트북에서 받아 `/data/mlavl/features/`로 scp** → 파일 구조·`--in_dim` 확인
 
 ### Phase 1 · RG 재현 (10/14–10/25)
 
@@ -164,10 +166,13 @@ CUDA_VISIBLE_DEVICES=0 $MLAVL_PY main.py ...
 - [ ] 목표 수치와 비교표 작성 (`experiments/EXPERIMENTS.md`)
 - [ ] README lr(1e-2)과 논문 lr 차이 실험 1회
 
-### Phase 2 · FS1000 재현 (출장 기간 10/26–10/31에 무인 실행)
+### Phase 2 · Fis-V 재현 (+ FS1000은 구하면) (출장 기간 10/26–10/31에 무인 실행)
 
-- [ ] 출발 전에 7개 점수 × 학습 스크립트(`scripts/run_fs1000.sh`)를 완성한다. GPU 0/1/3에 큐 방식으로 배분
-- [ ] 돌아와서 결과 표 작성. 원본 영상(RG·FS1000)을 구할 수 있는지도 이 단계에서 확인
+**변경(2026-10-11): FS1000 feature는 Baidu Netdisk 전용이고 정현도는 Baidu 계정이 없다. 기본은 Fis-V(TES, PCS. PAMFN 배포에 포함)로 바꾼다.** FS1000은 저자(jingfeixia708@gmail.com)에게 메일로 요청해 두고, 출장 전에 받으면 추가한다.
+
+- [ ] Fis-V TES/PCS 학습 스크립트(`scripts/run_fisv.sh`, `--dataset fisv --clip-num 124 --dropout 0.7 --alpha 0.5 --alpha_ce 0.1`) 완성. 출장 중에는 RG·Fis-V 반복 실험(seed, lr)을 GPU 0/1/3에 큐 방식으로 배분
+- [ ] (선택) FS1000 저자 메일 요청. 받으면 7개 점수 × `scripts/run_fs1000.sh`
+- [ ] 돌아와서 결과 표 작성. RG 원본 영상(ACTION-NET OneDrive)을 받을 수 있는지도 이 단계에서 확인
 
 ### Phase 3 · 중간발표용 1차 개선 (11/1–11/9, 공개 feature만 사용)
 
