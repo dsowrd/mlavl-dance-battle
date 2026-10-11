@@ -1,3 +1,7 @@
+# Modified from MLAVL (Xu et al., CVPR 2025), https://github.com/XuHuangbiao/MLAVL
+# Changes: (1) RGDataset sets args.score_range (FS1000/FisV did, RG did not -> test.py crashed with None).
+#          (2) FisVDataset.read_label only skips the first line if it is a header; the PAMFN FISV
+#              train/test.txt have no header, so upstream silently dropped one video from each split.
 from torch.utils.data import Dataset
 import numpy as np
 import os
@@ -109,9 +113,9 @@ class FisVDataset(Dataset):
         idx = {'TES': 1, 'PCS': 2}
         labels = []
         for i, line in enumerate(fr):
-            if i == 0:
-                continue
             line = line.strip().split()
+            if i == 0 and not line[0].isdigit():  # header line (PAMFN's FISV txt has none)
+                continue
             labels.append([line[0], float(line[idx[action_type]])])
         return labels
 
@@ -164,6 +168,8 @@ class RGDataset(Dataset):
         self.audio_path = os.path.join(audio_feat_path, action_type + '_audio_AST.npy')
         self.erase_path = video_feat_path + '_erTrue'
         self.score_range = 25.
+        if args is not None:
+            args.score_range = self.score_range
         self.clip_num = clip_num
         self.labels = self.read_label(label_path, action_type)
         classes_all = pd.read_csv(action_list)

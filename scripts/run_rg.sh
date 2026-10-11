@@ -17,8 +17,9 @@ shift 2
 
 declare -A EPOCHS=([Ball]=620 [Clubs]=340 [Hoop]=450 [Ribbon]=710)
 FEAT=${MLAVL_DATA}/features/RG
-# in_dim: PAMFN's VST features may be 1024-d (Swin-B); verify with scripts/inspect_features.py and set IN_DIM.
-IN_DIM=${IN_DIM:-768}
+# Verified 2026-10-11 with scripts/inspect_features.py: PAMFN {App}_rgb_VST.npy is (T, 1024), audio AST (T, 768),
+# T in [68, 77], 200 train / 50 test videos per apparatus. README's --in_dim 768 does NOT fit these files.
+IN_DIM=${IN_DIM:-1024}
 NAME=rg_${APP}_$(date +%m%d_%H%M)
 mkdir -p logs/stdout
 
