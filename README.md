@@ -1,3 +1,51 @@
+# mlavl-dance-battle: reproducing MLAVL and extending it to dance-battle judging
+
+This repository builds on **MLAVL** (Xu et al., "Language-Guided Audio-Visual Learning for Long-Term Sports Assessment", CVPR 2025, [code](https://github.com/XuHuangbiao/MLAVL)). Most of the model code is theirs. This project reproduces their results and extends the method to 1-vs-1 dance battle judging as a course project (Deep Learning, Dept. of Intelligent Robot Engineering, CBNU, Fall 2026). The upstream commit history is preserved; `main` tracks upstream and our work lives on `dev`.
+
+## What is ours vs. upstream
+
+Upstream (unchanged unless listed): `models/`, `clip/`, `datasets.py`, `train.py`, `test.py`, `utils.py`, `action-label_*.csv`, `*_text_feature.npy`, `Framework.png`.
+
+Our changes to upstream files (each file carries a `# Modified from MLAVL` header; commits prefixed `fix(upstream):`):
+
+- `options.py`: `--dataset {fs1000,fisv,rg,logo}`, `--text_feature`, `--use_clip`, `--alpha_ce`.
+- `main.py`: picks the Dataset class from `--dataset` (upstream hard-coded `FS1000Dataset`); passes `--alpha_ce`.
+- `models/model.py`: loads the precomputed CLIP text features instead of building ViFi-CLIP (`--use_clip` restores it); removed hard-coded `.cuda()`.
+- `models/loss.py`: CE-loss weight is an argument (paper uses 0.01 for FS1000, 0.1 for Fis-V/RG).
+
+Ours (new files; commits prefixed `feat:` / `data:` / `exp:` / `docs:`):
+
+- `scripts/`: environment and run scripts, `smoke_test.py`.
+- `experiments/EXPERIMENTS.md`: every run, one line each.
+- `ours/vocab/`: breaking move vocabulary for the MAG² graph (draft).
+- `ours/`, `tools/battle/` (planned): pose branch, kick-beat feature, battle dataset, pairwise (siamese) judging.
+
+## Reproduction results
+
+See `experiments/EXPERIMENTS.md`. Paper numbers vs. ours will be tabulated here once Phase 1/2 runs finish.
+
+| Data | Paper ρ / MSE | Ours ρ / MSE |
+| --- | --- | --- |
+| RG (avg) | 0.849 / 4.47 | – |
+| FS1000 (avg) | 0.90 / 10.39 | – |
+
+## Acknowledgements
+
+| Work | Used for | Notes |
+| --- | --- | --- |
+| [MLAVL](https://github.com/XuHuangbiao/MLAVL) (Xu et al., CVPR 2025) | model code, text features, action label CSVs | base of this repository |
+| [GDLT](https://github.com/xuangch/CVPR22_GDLT) (Xu et al., CVPR 2022) | code base of MLAVL | |
+| [PAMFN](https://github.com/qinghuannn/PAMFN) (Zeng & Zheng, TIP 2024) | RG / Fis-V features and labels | |
+| [Skating-Mixer / FS1000](https://github.com/AndyFrancesco29/Audio-Visual-Figure-Skating) (Xia et al., AAAI 2023) | FS1000 features and labels | |
+| Rhythmic Gymnastics dataset (ACTION-NET, Zeng et al., ACM MM 2020) | RG dataset | |
+| [BRACE](https://github.com/dmoltisanti/brace) (Moltisanti et al., ECCV 2022) | battle video list, 2D keypoints, beats | S-Lab License 1.0, non-commercial; videos are used for research only and are not redistributed |
+| CLIP / ViFi-CLIP, Video Swin, AST | text / video / audio features | |
+| Red Bull BC One official results | winner labels | per-year source URLs recorded in `winners.csv` |
+
+Full BibTeX entries are copied from each project's official page as they are used (see **Citation**). Upstream's original README follows.
+
+---
+
 # MLAVL: Language-Guided Audio-Visual Learning for Long-Term Sports Assessment
 
 This is the code for CVPR2025 paper "Language-Guided Audio-Visual Learning for Long-Term Sports Assessment".
