@@ -348,3 +348,27 @@ MLAVL BibTeX (공식 README에서 그대로 가져옴):
 - [ ] 브레이킹 무브 어휘 최종 목록: 초안 `ours/vocab/action-label_BREAKING.csv` 작성됨, 정현도 검토 필요
 - [x] GitHub: 계정 `dsowrd`, 저장소 `mlavl-dance-battle`(private), 인증은 SSH deploy key(`~/.ssh/mlavl_deploy`, alias `github-mlavl`). 로컬 git identity는 `dsowrd <dsowrd123@gmail.com>`로 설정(저장소 로컬 config). GitHub 계정 이메일과 다르면 커밋이 계정에 연결되지 않으니 확인
 - [x] 저장소 공개 여부: **당분간 private 유지** (정현도, 2026-10-11). public 전환과 저자 연락은 나중에 다시 결정
+
+### 조사 결과 (2026-10-11, 웹 조사. 다운로드는 아직 하지 않음)
+
+**RG·Fis-V feature (PAMFN)**
+- 유일한 배포처는 OneDrive 1개 링크: https://1drv.ms/u/s!ApyE_Lf3PFl2itlpIvyjNzcQ0TlsPA?e=biQ4bw (압축 해제 후 `data/`, `pretrained_models/`). 크기 미확인(수 GB 추정)
+- **서버에서 curl/API로는 받을 수 없다(1drv.ms → onedrive.live.com 403, shares API 401).** 브라우저가 필요하다: 사람이 노트북에서 받아 `scp`로 HDD에 올리거나, Claude in Chrome 확장으로 받는다
+- 파일 구조(PAMFN 코드 기준): `{Ball,Clubs,Hoop,Ribbon}_rgb_VST.npy`, `_flow_I3D.npy`, `_audio_AST.npy`, `FISV_rgb_VST.npy` 등. 각 .npy는 `{video_id: array}` dict(`allow_pickle=True`). 라벨 `data/RG/{train,test}.txt`, `data/FISV/{train,test}.txt` (헤더 1줄, 공백 구분). MLAVL `RGDataset`과 호환
+- **주의: PAMFN 설정은 VST(RGB) 1024차원, AST 768차원이다.** MLAVL README는 RG에 `--in_dim 768`을 쓴다. 받은 뒤 실제 shape를 확인하고 `--in_dim`을 맞춘다(`proj_audio`는 768 고정)
+
+**FS1000 feature (Skating-Mixer)**
+- Baidu Netdisk만 제공: https://pan.baidu.com/s/1SGbvK6vDGR7ZP0PxakUO7g?pwd=9tma (Baidu 계정 필요, Google Drive 미러 없음). 크기 미확인
+- 라벨 txt: `id TES PCS SS TR PE CO IN factor` 9열, 영상별 `{id}.npy`. MLAVL `FS1000Dataset`과 호환
+- **Baidu 계정이 없으면 Phase 2(FS1000)가 막힌다.** 대안: 저자(jingfeixia708@gmail.com)에게 메일로 요청, 또는 Fis-V(PAMFN에 포함)로 Phase 2를 대체
+
+**원본 영상**
+- RG: ACTION-NET README의 OneDrive 링크 https://1drv.ms/u/s!ApyE_Lf3PFl2issDbaK99shfZRKchg?e=fdd2eO 가 영상으로 추정(미검증, 역시 브라우저 필요). 유튜브 ID 목록은 없다
+- FS1000: 유튜브 ID·아카이브 없음. 저자 메일 요청만 가능
+- 올림픽 2024 브레이킹: olympics.com에 전체 리플레이(B-Boys Final 2:38, Round Robin, B-Girls 동일)가 있지만 **스트리밍 전용·로그인·지역 차단(한국은 중계권자 있어 차단 가능성 높음)·다운로드 불가**. 공식 유튜브 전체 배틀 업로드 없음. → 영상 확보는 사실상 어렵다. 항목별 점수 실험은 보류
+
+**올림픽 2024 결과집**: WDSF에서 공개 PDF 확보 가능 https://cdnb.worlddancesport.org/legacy-results/58801/OG2024_BKG_B99_BKG.pdf (0.9MB, 89쪽, HTTP 200 확인). 배틀·라운드별 심판 9명 투표와 5개 항목(Technique/Vocabulary/Originality/Execution/Musicality) 포함. Olympedia에도 배틀별 투표 페이지 있음
+
+**BRACE**: GitHub release `af_v1.0`에 `dataset.zip`(keypoint 132MiB), `manual_keypoints.zip`(17MiB), `audio_features.zip`(1.17GiB). 저장소 `annotations/`에 `segments.csv`, `sequences.csv`, `sequences_{train,test}.csv`, `audio_beats.json`, `shot_boundaries.json`, `videos_info.csv`(81개 유튜브 URL, 1080p 29.97fps; 연도별 2011:8, 2013:15, 2014:14, 2017:15, 2018:15, 2020:14). 다운로드 스크립트는 없고 `yt-dlp`로 직접 받는다(약 10–20GB 추정, HDD)
+
+**Red Bull BC One 승자 라벨**: 위키백과 "Red Bull BC One" 한 페이지에 6개 연도 대진표 전부 있음 (https://en.wikipedia.org/wiki/Red_Bull_BC_One, wikitext는 `action=raw`로 받아 `Round16`/`bracket`/`Round8` 템플릿을 파싱). 챔피언: 2011 Roxrite, 2013 Hong 10, 2014 Menno, 2017 Menno, 2018 Lil Zoo / B-girl Ami, 2020 Shigekix / B-girl Kastet. BRACE 유튜브 제목에 두 댄서와 라운드가 들어 있어 영상 단위로 교차 확인 가능. redbull.com 리캡으로 2차 검증
