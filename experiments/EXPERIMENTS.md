@@ -45,3 +45,4 @@ Suspected causes of the RG gap (to check in order):
 | Date | Commit | Dataset/score | Key args | GPU | Time | Max VRAM | best ρ (ep) | best MSE (ep) | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 2026-10-11 | 93a141b | Fis-V / TES, PCS | `scripts/run_fisv.sh {TES,PCS} 1` (paper: lr 3e-4, dropout 0.7, α 0.5, α_ce 0.1, clip 124, in_dim 1024, 420/440 ep) | 1 (2 concurrent) | running since 15:54 | ~2.7 GB each | | | logs `logs/stdout/fisv_*_1011_1554.log` |
+| 2026-10-11 | 1c0f97c | Fis-V / TES, PCS | paper settings, `SEED=1` then `SEED=2` | 1 (queued: start when the seed-0 run of the same score finishes) | queued 17:40 | | | | seed repeats, tmux `mlavl_fisv` windows `TES_seeds`/`PCS_seeds`, logs `logs/stdout/fisv_*_s{1,2}_*.log`. Approved by 정현도 ("Fis-V도 seed 1, 2 추가해") |
