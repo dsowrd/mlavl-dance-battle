@@ -117,5 +117,5 @@ Motivation: dropout did nothing (3-1). The optimiser is plain Adam with coupled 
 
 | Date | Commit | Dataset/score | Key args | GPU | Time | Max VRAM | best ρ (ep) | best MSE (ep) | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2026-10-12 | (this) | RG / 4 apparatus × seeds 0,1,2 | paper settings + `--weight-decay 1e-3`, then `1e-2` | 0/1/3 = seed 0/1/2; 4 concurrent per GPU | started 16:1x | | | | logs `logs/stdout/rg_*_s?_wd1e-{3,2}_1012_*.log`. Requested by 정현도 ("weight decay 올려서 다음 실험 돌려") |
+| 2026-10-12 | (this) | RG / 4 apparatus × seeds 0,1,2 | paper settings + `--weight-decay 1e-3`, then `1e-2` | 0/1/3 = seed 0/1/2; 4 concurrent per GPU | started 18:04 | | | | logs `logs/stdout/rg_*_s?_wd1e-{3,2}_1012_*.log`. Requested by 정현도 ("weight decay 올려서 다음 실험 돌려") |
 
