@@ -117,5 +117,19 @@ Motivation: dropout did nothing (3-1). The optimiser is plain Adam with coupled 
 
 | Date | Commit | Dataset/score | Key args | GPU | Time | Max VRAM | best ρ (ep) | best MSE (ep) | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2026-10-12 | (this) | RG / 4 apparatus × seeds 0,1,2 | paper settings + `--weight-decay 1e-3`, then `1e-2` | 0/1/3 = seed 0/1/2; 4 concurrent per GPU | started 18:04 | | | | logs `logs/stdout/rg_*_s?_wd1e-{3,2}_1012_*.log`. Requested by 정현도 ("weight decay 올려서 다음 실험 돌려") |
+| 2026-10-12 | 5f35949 | RG / 4 apparatus × seeds 0,1,2 | paper settings + `--weight-decay 1e-3` | 0/1/3 = seed 0/1/2; 4 concurrent per GPU | 18:04–20:22 | ~1.8 GB | avg 0.772 | avg 5.21 | 12 runs, logs `logs/stdout/rg_*_s?_wd1e-3_1012_1804.log`. Final train ρ 0.99 |
+| 2026-10-12 | 3e573ea | RG / 4 apparatus × seeds 0,1,2 | paper settings + `--weight-decay 1e-2` | 0/1/3 = seed 0/1/2 | 19:10–22:05 | ~1.8 GB | avg 0.773 | avg 5.30 | 12 runs, logs `logs/stdout/rg_*_s?_wd1e-2_1012_*.log`. Final train ρ 0.98–0.99. Requested by 정현도 ("weight decay 올려서 다음 실험 돌려") |
+
+**Result, 3 seeds each (mean ± std of per-apparatus best test ρ / best test MSE):**
+
+| Apparatus | wd 1e-4 (paper, baseline) | wd 1e-3 | wd 1e-2 |
+| --- | --- | --- | --- |
+| Ball | 0.758 ± 0.009 / 5.52 ± 0.17 | 0.767 ± 0.010 / 5.55 ± 0.27 | 0.780 ± 0.015 / 5.21 ± 0.25 |
+| Clubs | 0.749 ± 0.041 / 5.08 ± 0.61 | 0.748 ± 0.034 / 4.96 ± 0.45 | 0.749 ± 0.028 / 5.03 ± 0.35 |
+| Hoop | 0.786 ± 0.035 / 4.73 ± 0.47 | 0.787 ± 0.036 / 4.81 ± 0.45 | 0.795 ± 0.021 / 4.61 ± 0.31 |
+| Ribbon | 0.808 ± 0.030 / 5.05 ± 0.60 | 0.784 ± 0.019 / 5.52 ± 0.41 | 0.769 ± 0.024 / 6.34 ± 0.28 |
+| **Avg** | **0.775 / 5.10** | **0.772 / 5.21** | **0.773 / 5.30** |
+| final train ρ | 0.99 | 0.99 | 0.98–0.99 |
+
+Conclusion: **no effect.** Averages move by ≤0.003 ρ, within seed std, and train ρ stays at 0.99 even at 1e-2 (100× the paper value). Ball/Hoop tick up and Ribbon ticks down with larger decay; these are opposite-signed, apparatus-level noise. Note that this is *coupled* L2 inside Adam, which Adam's per-parameter scaling largely neutralises (the AdamW argument); the code already has `--optim adamw`, so a decoupled-decay test (AdamW, wd 0.05–0.1) is the proper follow-up if weight decay is pursued further. Together with 3-1 the picture is that generic parameter regularisation does not address this over-fitting; the next candidates act on the data/input side (fewer epochs, input-feature dropout, temporal augmentation) or on the evaluation protocol.
 
