@@ -21,7 +21,8 @@ FEAT=${MLAVL_DATA}/features/RG
 # T in [68, 77], 200 train / 50 test videos per apparatus. README's --in_dim 768 does NOT fit these files.
 IN_DIM=${IN_DIM:-1024}
 SEED=${SEED:-0}            # e.g. SEED=1 bash scripts/run_rg.sh Ball 3
-NAME=rg_${APP}_s${SEED}_$(date +%m%d_%H%M)
+TAG=${TAG:-}               # optional label put into the model/log name, e.g. TAG=dp0.5
+NAME=rg_${APP}_s${SEED}${TAG:+_$TAG}_$(date +%m%d_%H%M)
 mkdir -p logs/stdout
 
 CMD=(env CUDA_VISIBLE_DEVICES=$GPU "$MLAVL_PY" main.py

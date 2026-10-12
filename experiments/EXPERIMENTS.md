@@ -86,3 +86,14 @@ Suspected causes of the RG gap (to check in order):
 - PCS reproduces within 0.011 ρ; TES is 0.043 below the paper in every seed. TES (technical element score) depends on recognising specific jumps/spins, which is where the authors' text-guided features would matter most and where a feature mismatch (README `--in_dim 768` vs public 1024-d VST) would hurt most.
 - Best-ρ epochs are very early (16–65 of 420/440) and the MSE at those checkpoints is poor (TES 26–37); after epoch ~100 the model has train ρ 0.99 and test ρ settles 0.03–0.08 below the early peak. Fewer epochs or stronger regularisation is the first thing to try in Phase 3; the early peaks also mean the "best ρ" protocol is optimistic and noisy.
 - All `_best` / `_best_mse` ckpts backed up to `/data/mlavl/ckpt_backup/` (975 MB total so far).
+
+## Phase 3 · improvements (public features only)
+
+### 3-1 · dropout (regularisation), RG
+
+Motivation: every reproduction run over-fits early (train ρ 0.99; best test ρ at epoch 16–355 of 340–710). `--dropout` is the dropout inside the Transformer layers (S²CE encoder, AVCF cross-temporal decoder, DPG grading decoder; attention + FFN). Paper value 0.3 (RG). Baseline (3 seeds): ρ 0.775 / MSE 5.10.
+
+| Date | Commit | Dataset/score | Key args | GPU | Time | Max VRAM | best ρ (ep) | best MSE (ep) | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-10-12 | (this) | RG / 4 apparatus × seeds 0,1,2 | paper settings + `--dropout 0.5`, then `--dropout 0.7` (`scripts/phase3_dropout.sh`) | 0 (seed 0), 1 (seed 1), 3 (seed 2); 4 concurrent per GPU | started 00:25 | | | | logs `logs/stdout/rg_*_s?_dp0.{5,7}_*.log`. Requested by 정현도 ("dropout 올려서 Phase 3 첫 실험 돌려") |
+

@@ -19,7 +19,8 @@ declare -A EPOCHS=([TES]=420 [PCS]=440)
 FEAT=${MLAVL_DATA}/features/FISV
 IN_DIM=${IN_DIM:-1024}
 SEED=${SEED:-0}            # e.g. SEED=1 bash scripts/run_rg.sh Ball 3
-NAME=fisv_${SCORE}_s${SEED}_$(date +%m%d_%H%M)
+TAG=${TAG:-}               # optional label put into the model/log name, e.g. TAG=dp0.5
+NAME=fisv_${SCORE}_s${SEED}${TAG:+_$TAG}_$(date +%m%d_%H%M)
 mkdir -p logs/stdout
 
 CMD=(env CUDA_VISIBLE_DEVICES=$GPU "$MLAVL_PY" main.py
