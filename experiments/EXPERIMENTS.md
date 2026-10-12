@@ -95,5 +95,19 @@ Motivation: every reproduction run over-fits early (train ρ 0.99; best test ρ 
 
 | Date | Commit | Dataset/score | Key args | GPU | Time | Max VRAM | best ρ (ep) | best MSE (ep) | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2026-10-12 | (this) | RG / 4 apparatus × seeds 0,1,2 | paper settings + `--dropout 0.5`, then `--dropout 0.7` (`scripts/phase3_dropout.sh`) | 0 (seed 0), 1 (seed 1), 3 (seed 2); 4 concurrent per GPU | started 2026-10-12 12:04 | | | | logs `logs/stdout/rg_*_s?_dp0.{5,7}_1012_*.log`. Requested by 정현도 ("dropout 올려서 Phase 3 첫 실험 돌려") |
+| 2026-10-12 | 585983c | RG / 4 apparatus × seeds 0,1,2 | paper settings + `--dropout 0.5` (`scripts/phase3_dropout.sh`) | 0/1/3 = seed 0/1/2; 4 concurrent per GPU | 12:04–14:21, 1:07–2:17 per run | ~1.8 GB | avg 0.776 (see table) | avg 5.33 | 12 runs, logs `logs/stdout/rg_*_s?_dp0.5_1012_1204.log`. Final train ρ still 0.98–0.99 |
+| 2026-10-12 | 9b9d21c | RG / 4 apparatus × seeds 0,1,2 | paper settings + `--dropout 0.7` | 0/1/3 = seed 0/1/2 | 13:11–15:59, 1:07–1:41 per run | ~1.8 GB | avg 0.751 | avg 6.40 | 12 runs, logs `logs/stdout/rg_*_s?_dp0.7_1012_*.log`. Final train ρ 0.93–0.96. Requested by 정현도 ("dropout 올려서 Phase 3 첫 실험 돌려") |
+
+**Result, 3 seeds each (mean ± std of per-apparatus best test ρ / best test MSE):**
+
+| Apparatus | dropout 0.3 (paper, baseline) | dropout 0.5 | dropout 0.7 |
+| --- | --- | --- | --- |
+| Ball | 0.758 ± 0.009 / 5.52 ± 0.17 | 0.771 ± 0.016 / 5.93 ± 0.73 | 0.735 ± 0.021 / 7.39 ± 0.36 |
+| Clubs | 0.749 ± 0.041 / 5.08 ± 0.61 | 0.745 ± 0.024 / 5.24 ± 0.43 | 0.722 ± 0.037 / 6.83 ± 0.85 |
+| Hoop | 0.786 ± 0.035 / 4.73 ± 0.47 | 0.792 ± 0.006 / 4.79 ± 0.28 | 0.785 ± 0.008 / 5.18 ± 0.10 |
+| Ribbon | 0.808 ± 0.030 / 5.05 ± 0.60 | 0.798 ± 0.030 / 5.37 ± 0.63 | 0.763 ± 0.031 / 6.20 ± 0.80 |
+| **Avg** | **0.775 / 5.10** | **0.776 / 5.33** | **0.751 / 6.40** |
+| final train ρ | 0.99 | 0.98–0.99 | 0.93–0.96 |
+
+Conclusion: **Transformer dropout is not the lever.** 0.5 is indistinguishable from the baseline (ρ +0.001, MSE +0.23, all within seed std); 0.7 hurts (ρ −0.024, MSE +1.3) and only then does the train ρ drop below 0.99. The model memorises the 200 training videos through something dropout inside the Transformer layers does not touch (frozen 1024-d clip features → 1×1 Conv projections, the graph module, the grading queries). Next regularisation candidates, in order: (a) fewer epochs / early-stopping-style evaluation protocol, (b) weight decay 1e-4 → 1e-3/1e-2, (c) dropout on the input features / after the projection (`PositionalEncoding` has a dropout=0 slot), (d) temporal augmentation (random crop range is only T−68 ≤ 9 clips on RG; try random clip masking or mixup across videos). Keep 0.3 for all later Phase 3 experiments.
 
