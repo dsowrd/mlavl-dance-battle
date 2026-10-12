@@ -95,5 +95,5 @@ Motivation: every reproduction run over-fits early (train ρ 0.99; best test ρ 
 
 | Date | Commit | Dataset/score | Key args | GPU | Time | Max VRAM | best ρ (ep) | best MSE (ep) | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2026-10-12 | (this) | RG / 4 apparatus × seeds 0,1,2 | paper settings + `--dropout 0.5`, then `--dropout 0.7` (`scripts/phase3_dropout.sh`) | 0 (seed 0), 1 (seed 1), 3 (seed 2); 4 concurrent per GPU | started 00:25 | | | | logs `logs/stdout/rg_*_s?_dp0.{5,7}_*.log`. Requested by 정현도 ("dropout 올려서 Phase 3 첫 실험 돌려") |
+| 2026-10-12 | (this) | RG / 4 apparatus × seeds 0,1,2 | paper settings + `--dropout 0.5`, then `--dropout 0.7` (`scripts/phase3_dropout.sh`) | 0 (seed 0), 1 (seed 1), 3 (seed 2); 4 concurrent per GPU | started 2026-10-12 12:04 | | | | logs `logs/stdout/rg_*_s?_dp0.{5,7}_1012_*.log`. Requested by 정현도 ("dropout 올려서 Phase 3 첫 실험 돌려") |
 
