@@ -111,3 +111,11 @@ Motivation: every reproduction run over-fits early (train ρ 0.99; best test ρ 
 
 Conclusion: **Transformer dropout is not the lever.** 0.5 is indistinguishable from the baseline (ρ +0.001, MSE +0.23, all within seed std); 0.7 hurts (ρ −0.024, MSE +1.3) and only then does the train ρ drop below 0.99. The model memorises the 200 training videos through something dropout inside the Transformer layers does not touch (frozen 1024-d clip features → 1×1 Conv projections, the graph module, the grading queries). Next regularisation candidates, in order: (a) fewer epochs / early-stopping-style evaluation protocol, (b) weight decay 1e-4 → 1e-3/1e-2, (c) dropout on the input features / after the projection (`PositionalEncoding` has a dropout=0 slot), (d) temporal augmentation (random crop range is only T−68 ≤ 9 clips on RG; try random clip masking or mixup across videos). Keep 0.3 for all later Phase 3 experiments.
 
+### 3-2 · weight decay, RG
+
+Motivation: dropout did nothing (3-1). The optimiser is plain Adam with coupled L2 `weight_decay` (main.py `get_optim`), paper value 1e-4. Try 1e-3 and 1e-2. Baseline (3 seeds): ρ 0.775 / MSE 5.10. Launcher: `scripts/rg_sweep.sh mlavl_p3_wd wd1e-3 "--weight-decay 1e-3" wd1e-2 "--weight-decay 1e-2"`.
+
+| Date | Commit | Dataset/score | Key args | GPU | Time | Max VRAM | best ρ (ep) | best MSE (ep) | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-10-12 | (this) | RG / 4 apparatus × seeds 0,1,2 | paper settings + `--weight-decay 1e-3`, then `1e-2` | 0/1/3 = seed 0/1/2; 4 concurrent per GPU | started 16:1x | | | | logs `logs/stdout/rg_*_s?_wd1e-{3,2}_1012_*.log`. Requested by 정현도 ("weight decay 올려서 다음 실험 돌려") |
+

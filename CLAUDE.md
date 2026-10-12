@@ -188,6 +188,7 @@ CUDA_VISIBLE_DEVICES=0 $MLAVL_PY main.py ...
 원본 영상 없이 가능한 개선을 우선한다. 논문 한계 ③④에 대응한다.
 
 - [x] **정규화 강화(dropout)**: RG dropout 0.3 → 0.5, 0.7을 seed 3개로 비교 (2026-10-12, `scripts/phase3_dropout.sh`). **결과: 0.5는 baseline과 같음(ρ 0.776 vs 0.775), 0.7은 악화(0.751 / MSE 6.40).** Transformer 내부 dropout은 과적합의 지렛대가 아니다. 다음 후보: epoch 축소, weight decay, 입력 feature dropout, temporal augmentation. 상세는 `experiments/EXPERIMENTS.md` 3-1
+- [ ] **weight decay**: Adam L2 1e-4 → 1e-3, 1e-2를 seed 3개로 비교. 2026-10-12 16시 시작 (`scripts/rg_sweep.sh mlavl_p3_wd ...`, GPU 0/1/3 = seed 0/1/2, 약 4시간). 결과는 `experiments/EXPERIMENTS.md` 3-2
 - [ ] **Multi-task head**: TES·PCS(+5개 세부점수)를 한 모델에서 같이 예측해 점수 간 상관을 활용
 - [ ] **고득점 과소추정 완화**: 고득점 샘플 가중 MSE, 또는 label distribution smoothing / balanced MSE
 - [ ] 각 개선의 ablation 표(ρ, MSE, 고득점 구간 MSE 별도)
