@@ -211,9 +211,11 @@ CUDA_VISIBLE_DEVICES=0 $MLAVL_PY main.py ...
 
 할 일:
 
-- [ ] BRACE 메타데이터 + 영상 다운로드 (HDD) — 2026-10-13 16:40 시작 (정현도 승인, `tools/battle/download_brace_videos.sh`, tmux `brace_dl`, `/data/mlavl/videos/brace/`, 1080p 약 13GB). yt-dlp는 mlavl env에 설치. 실패 id는 `failed.txt`, 끝나면 1회 재시도
+- [x] BRACE 영상 다운로드 완료 2026-10-13 17:12 (정현도 승인, `tools/battle/download_brace_videos.sh`, `/data/mlavl/videos/brace/`, 81/81, 11GB, 전부 1080p + AAC 오디오). yt-dlp는 mlavl env에 설치
+  - **서버 ffmpeg 4.4는 AV1을 디코딩하지 못한다.** 처음 받은 16개가 AV1이라 H.264 → VP9 우선으로 다시 받음. YouTube 403은 일시적이라 간격을 두고 재시도하면 받아진다
+  - **fps가 영상마다 다르다: 25fps 58개, 29.97fps 23개** (BRACE `videos_info.csv`의 fps 열과 일치, 길이 차 0.15초 이내). BRACE 프레임 번호 → 초 변환과 feature 추출 시 반드시 영상별 fps를 쓴다
 - [x] 배틀 단위로 묶기 → `ours/battle/battles.csv` (2026-10-13). **BRACE 영상 1개 = 배틀 1개**(81개, 모두 댄서 2명, sequence 4–8개). 2020은 B-boy 7 + B-girl 7
-- [ ] 승자 라벨 `ours/battle/winners.csv` — 자동 파싱 81/81 완료(위키백과 oldid 1376654426 + 유튜브 제목 라운드 교차 확인, 연도별 챔피언 일치). **정현도 검토 후 `verified_by` 채우기 남음.** 2014는 라운드별 판정이라 표수 형식이 다름. 첫 번째 댄서 승률 59%(baseline)
+- [ ] 승자 라벨 `ours/battle/winners.csv` — 검토 페이지 https://claude.ai/artifact/V2MUCuqJ3RbqUACz1Qkd5Y (맞음/틀림/보류가 artifact db `checks` 컬렉션에 저장, Claude가 읽어 `verified_by` 반영). 자동 파싱 81/81 완료(위키백과 oldid 1376654426 + 유튜브 제목 라운드 교차 확인, 연도별 챔피언 일치). **정현도 검토 후 `verified_by` 채우기 남음.** 2014는 라운드별 판정이라 표수 형식이 다름. 첫 번째 댄서 승률 59%(baseline)
 - [ ] feature 추출: MLAVL 저장소에는 추출 코드가 없으니 직접 작성한다
   - 영상: 32프레임 비중첩 클립 단위 Video Swin. **feature 차원이 `--in_dim`(768)과 맞아야 한다.** Swin-B는 1024차원이니 맞는 모델을 고르거나 `in_dim`을 바꾼다
   - 음악: AST (AudioSet). 같은 클립 경계로 정렬
