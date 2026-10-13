@@ -2,6 +2,8 @@
 # Changes: (1) ViFi-CLIP is only built when --use_clip is given; otherwise the precomputed text
 #          feature file (--text_feature, torch.save format) is loaded once into a buffer.
 #          (2) removed hard-coded .cuda() on w1/weight_AV/weight_V/edge_index so the model follows .to(device).
+#          (3) Phase 3-3 regularisation (ours): --clip_mask p zeroes random whole clips (same mask for V and A) during
+#              training, --input_dropout p is nn.Dropout on the projected V/A tokens before the shared encoder.
 from torch import nn
 import torch
 import os
@@ -124,6 +126,10 @@ class MLAVL(nn.Module):
 
         self.pos_encoder = PositionalEncoding(hidden_dim)
 
+        # ours (Phase 3-3): input-side regularisation, both default to 0 = upstream behaviour
+        self.clip_mask = float(getattr(config, 'clip_mask', 0.0) or 0.0)
+        self.input_dropout = nn.Dropout(float(getattr(config, 'input_dropout', 0.0) or 0.0))
+
         self.w1 = nn.Parameter(torch.ones(1) * 0.5)
         self.register_buffer('weight_AV', torch.linspace(0, 1, self.n_query * 2))
         self.register_buffer('weight_V', torch.linspace(0, 1, self.n_query))
@@ -159,8 +165,14 @@ class MLAVL(nn.Module):
     def forward(self, visual, audio):
         # Shared-Specifc Context Encoder
         b, t, c = visual.shape
+        if self.training and self.clip_mask > 0:  # ours: drop whole clips, aligned across modalities
+            keep = (torch.rand(b, t, 1, device=visual.device) >= self.clip_mask).to(visual.dtype)
+            visual = visual * keep
+            audio = audio * keep
         visual = self.proj_visual(visual.transpose(1, 2)).transpose(1, 2)
         audio = self.proj_audio(audio.transpose(1, 2)).transpose(1, 2)
+        visual = self.input_dropout(visual)  # ours: identity when --input_dropout 0
+        audio = self.input_dropout(audio)
 
         encode_visual = self.SSCEncoder(visual)
         encode_audio = self.SSCEncoder(audio)

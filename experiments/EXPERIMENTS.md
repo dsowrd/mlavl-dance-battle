@@ -133,3 +133,16 @@ Motivation: dropout did nothing (3-1). The optimiser is plain Adam with coupled 
 
 Conclusion: **no effect.** Averages move by ≤0.003 ρ, within seed std, and train ρ stays at 0.99 even at 1e-2 (100× the paper value). Ball/Hoop tick up and Ribbon ticks down with larger decay; these are opposite-signed, apparatus-level noise. Note that this is *coupled* L2 inside Adam, which Adam's per-parameter scaling largely neutralises (the AdamW argument); the code already has `--optim adamw`, so a decoupled-decay test (AdamW, wd 0.05–0.1) is the proper follow-up if weight decay is pursued further. Together with 3-1 the picture is that generic parameter regularisation does not address this over-fitting; the next candidates act on the data/input side (fewer epochs, input-feature dropout, temporal augmentation) or on the evaluation protocol.
 
+### 3-3 · input-side regularisation (ours), RG
+
+Motivation: parameter regularisation (3-1 dropout, 3-2 L2) did nothing; the model memorises the fixed clip features. Two input-side knobs (`feat:` commit, `models/model.py` forward, both off by default):
+- `--clip_mask p`: during training each clip is zeroed with probability p, same mask for video and audio (keeps them aligned). RG random-crop gives ≤9 clips of augmentation, so this is the first real temporal augmentation.
+- `--input_dropout p`: `nn.Dropout` on the projected 256-d V/A tokens right before the shared S²CE encoder.
+
+Settings: clip_mask 0.1, clip_mask 0.25, input_dropout 0.3, input_dropout 0.5; 3 seeds each (48 runs). Launcher:
+`scripts/rg_sweep.sh mlavl_p3_input cm0.1 "--clip_mask 0.1" cm0.25 "--clip_mask 0.25" id0.3 "--input_dropout 0.3" id0.5 "--input_dropout 0.5"`. Baseline (3 seeds): ρ 0.775 / MSE 5.10.
+
+| Date | Commit | Dataset/score | Key args | GPU | Time | Max VRAM | best ρ (ep) | best MSE (ep) | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-10-13 | (this) | RG / 4 apparatus × seeds 0,1,2 | paper settings + `--clip_mask 0.1` → `0.25` → `--input_dropout 0.3` → `0.5` | 0/1/3 = seed 0/1/2; 4 concurrent per GPU | started (see log) | | | | logs `logs/stdout/rg_*_s?_{cm0.1,cm0.25,id0.3,id0.5}_1013_*.log`. Requested by 정현도 ("1번 가자") |
+
