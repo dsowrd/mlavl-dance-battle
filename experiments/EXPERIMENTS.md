@@ -211,8 +211,12 @@ P(A wins) = σ(k·(s_A − s_B)), BCE + 0.1 × MLAVL aux losses, clip_num 64, 40
 | 10 epochs | 56.0% ± 2.3 | 0.580 | 0.845 | 58.0% (46.9–69.1) | 0.53–0.76 |
 | 20 epochs, lr 5e-5 | 55.6% ± 2.7 | 0.580 | 0.881 | 56.8% (45.7–67.9) | 0.44–0.66 |
 | freeze proj/S²CE/MAG²/AVCF, train text proj + grading decoder (2.97 M params) | 48.6% ± 1.2 | 0.511 | 0.696 | 50.6% (39.5–61.7) | 0.83–0.93 |
-| 10 epochs + first-dancer bias | *invalid, see below* | | | | |
+| 10 epochs + first-dancer bias (rerun after fix) | 56.4% ± 2.1 | 0.579 | 0.871 | 56.8% (45.7–67.9) | 0.54–0.76 |
+| 40 epochs + first-dancer bias (rerun after fix) | 60.9% ± 0.6 | 0.610 | 1.169 | 61.7% (50.6–72.8) | |
 
 - Training less makes the predictions less over-confident (log loss 0.99 → 0.85) but does not raise accuracy; freezing the RG-trained front end leaves the model at chance (log loss 0.696 = it outputs ~0.5), so the RG features are not directly usable for battles and the front end has to adapt.
 - All settings so far lie in 55–61%, inside one another's CIs: with 81 battles, settings cannot be ranked yet. The round-1 RG-init number is the best point estimate, not a proven winner.
 - **Bug found (fixed in 5a825e8):** the logit scale k and the order bias were trained at the model lr (1e-4); with Adam a scalar moves ~lr per step, so in ≤ 200 steps they stayed at their initial values (bias printed 0.00 in every fold, results identical to "10 epochs"). They now have their own lr (`--scalar_lr 1e-2`). The invalid bias run was discarded (logs moved to `logs/stdout/old/`). Earlier accuracies are unaffected (k does not change the sign of s_A − s_B); their log losses were computed with k ≈ 10 throughout. Rerunning: `rg_e10bias` and `initRG_bias` (40 ep).
+- **Order-bias rerun (2026-10-14 00:40):** the learned first-dancer offset settles at b = 0.03–0.29 (≈ +1–7 points of probability for the first dancer), i.e. the model treats the first-dancer effect as small once it sees the performances; accuracy is unchanged (60.9% with 40 epochs, 56.4% with 10). With the scale now learnable, k grows to 16–18 in the 40-epoch runs and the log loss gets worse (1.17): the 40-epoch model is over-confident, which the fixed k = 10 had been hiding.
+- **Status after rounds 1–2:** best = RG-initialised siamese MLAVL, 60.9% ± 0.6–1.2 (seed-ensemble 61.7%, CI 50.6–72.8%), AUC 0.61. That is above chance but not distinguishable from the first-dancer rule (59.3%). Hyper-parameter changes move results only within 55–61%. The remaining levers are information the model does not have yet (pose / kick-beat, the reviewed breaking vocabulary) and more training pairs (round-level pairs: every battle has 2–4 rounds per dancer).
+
