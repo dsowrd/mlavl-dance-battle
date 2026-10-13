@@ -162,3 +162,25 @@ Settings: clip_mask 0.1, clip_mask 0.25, input_dropout 0.3, input_dropout 0.5; 3
 
 Conclusion: **no gain from input-side regularisation either.** Input dropout 0.3/0.5 is a wash (−0.001 / −0.004 ρ, within seed std); clip masking *hurts* monotonically (−0.010 at 0.1, −0.022 at 0.25, driven by Ball/Clubs/Ribbon) and train ρ stays 0.99 regardless, so masking 25 % of clips still does not stop memorisation — the model fits through whichever clips remain. Across 3-1/3-2/3-3 (dropout, L2, input dropout, clip masking; 96 runs) nothing moves the RG average by more than seed noise, which strongly suggests the −0.07 gap to the paper is not a regularisation problem but an input problem (the public 1024-d PAMFN features vs whatever 768-d features the authors used). **Phase 3 hyper-parameter sweeps stop here** (정현도, 2026-10-13); the improvement story for the mid-term presentation moves to the task-level changes (multi-task head, high-score weighting) and to the battle domain (Phase 4/5), where the baseline is ours anyway. Keep `--clip_mask 0 --input_dropout 0` (defaults).
 
+
+## Phase 4/6 · battle winner prediction (BRACE, 81 battles)
+
+Labels: `ours/battle/winners.csv` (Wikipedia brackets, 31/81 checked by 정현도 against the videos, all correct).
+Metric: pairwise accuracy over the 81 battles, 95% bootstrap CI (10,000 resamples of battles). A = dancer who danced first.
+
+### Training-free baselines (2026-10-13, `tools/battle/baselines.py`)
+
+Pose statistics from the BRACE keypoints, aggregated over all of a dancer's segments in the battle; prediction = the dancer with the larger value wins.
+
+| baseline | accuracy | 95% CI | 2011 | 2013 | 2014 | 2017 | 2018 | 2020 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| random (expected) | 50.0% | | | | | | | |
+| first dancer wins | 59.3% | 48.1–70.4% | 38% | 60% | 50% | 60% | 60% | 79% |
+| more dancing time | 50.6% | 39.5–61.7% | 50% | 53% | 50% | 47% | 47% | 57% |
+| higher mean joint speed (energy) | 58.0% | 46.9–69.1% | 75% | 67% | 29% | 73% | 53% | 57% |
+| higher 90th-pct joint speed | 56.8% | 45.7–67.9% | 75% | 67% | 36% | 80% | 40% | 50% |
+| larger powermove share | 59.3% | 48.1–70.4% | 88% | 47% | 50% | 67% | 47% | 71% |
+
+- Every rule's CI contains 50%: with 81 battles, anything below ~61% is not distinguishable from chance. A learned model needs ≥ ~65% to be clearly better than the first-dancer rule.
+- Winners and losers are almost identical on these statistics (mean energy 0.0476 vs 0.0464, powermove share 0.39 vs 0.37, dancing time 78.6 s vs 78.9 s): judges are not rewarding "more" or "faster", which is the motivation for MLAVL-style assessment (musicality, vocabulary) rather than motion energy.
+- Year-to-year swings (energy rule 29% in 2014, 75% in 2011) are large because a year has only 8–15 battles; leave-one-year-out results must be pooled over all 81 battles, never reported per fold alone.
