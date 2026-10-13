@@ -189,7 +189,7 @@ CUDA_VISIBLE_DEVICES=0 $MLAVL_PY main.py ...
 
 - [x] **정규화 강화(dropout)**: RG dropout 0.3 → 0.5, 0.7을 seed 3개로 비교 (2026-10-12, `scripts/phase3_dropout.sh`). **결과: 0.5는 baseline과 같음(ρ 0.776 vs 0.775), 0.7은 악화(0.751 / MSE 6.40).** Transformer 내부 dropout은 과적합의 지렛대가 아니다. 다음 후보: epoch 축소, weight decay, 입력 feature dropout, temporal augmentation. 상세는 `experiments/EXPERIMENTS.md` 3-1
 - [x] **weight decay**: Adam L2 1e-4 → 1e-3, 1e-2를 seed 3개로 비교 (2026-10-12). **결과: 효과 없음** (ρ 0.772 / 0.773 vs baseline 0.775, train ρ 0.99 유지). Adam의 coupled L2라 무력화된 것으로 보임. 더 볼 거면 `--optim adamw`(decoupled)로. 상세는 `experiments/EXPERIMENTS.md` 3-2
-- [ ] **입력 쪽 정규화(ours)**: `--clip_mask`(clip 단위 마스킹, V·A 동일 마스크) 0.1/0.25, `--input_dropout`(투영 후 토큰 dropout) 0.3/0.5를 seed 3개로 비교. 2026-10-13 10:29 시작 (`scripts/rg_sweep.sh mlavl_p3_input ...`, 48회, 약 8시간). 결과는 `experiments/EXPERIMENTS.md` 3-3
+- [ ] **입력 쪽 정규화(ours)** (2026-10-13 정현도: 하이퍼파라미터 실험은 이걸로 마무리하고 Phase 4로 넘어감): `--clip_mask`(clip 단위 마스킹, V·A 동일 마스크) 0.1/0.25, `--input_dropout`(투영 후 토큰 dropout) 0.3/0.5를 seed 3개로 비교. 2026-10-13 10:29 시작 (`scripts/rg_sweep.sh mlavl_p3_input ...`, 48회, 약 8시간). 결과는 `experiments/EXPERIMENTS.md` 3-3
 - [ ] **Multi-task head**: TES·PCS(+5개 세부점수)를 한 모델에서 같이 예측해 점수 간 상관을 활용
 - [ ] **고득점 과소추정 완화**: 고득점 샘플 가중 MSE, 또는 label distribution smoothing / balanced MSE
 - [ ] 각 개선의 ablation 표(ρ, MSE, 고득점 구간 MSE 별도)
@@ -211,14 +211,14 @@ CUDA_VISIBLE_DEVICES=0 $MLAVL_PY main.py ...
 
 할 일:
 
-- [ ] BRACE 메타데이터 + 영상 다운로드 (HDD)
-- [ ] 배틀 단위로 묶기: (연도, 대진, 댄서 A, 댄서 B, 라운드별 sequence) → `battles.csv`
-- [ ] 승자 라벨 `winners.csv` 작성 (출처 URL 함께 기록)
+- [ ] BRACE 메타데이터 + 영상 다운로드 (HDD) — 2026-10-13 16:40 시작 (정현도 승인, `tools/battle/download_brace_videos.sh`, tmux `brace_dl`, `/data/mlavl/videos/brace/`, 1080p 약 13GB). yt-dlp는 mlavl env에 설치. 실패 id는 `failed.txt`, 끝나면 1회 재시도
+- [x] 배틀 단위로 묶기 → `ours/battle/battles.csv` (2026-10-13). **BRACE 영상 1개 = 배틀 1개**(81개, 모두 댄서 2명, sequence 4–8개). 2020은 B-boy 7 + B-girl 7
+- [ ] 승자 라벨 `ours/battle/winners.csv` — 자동 파싱 81/81 완료(위키백과 oldid 1376654426 + 유튜브 제목 라운드 교차 확인, 연도별 챔피언 일치). **정현도 검토 후 `verified_by` 채우기 남음.** 2014는 라운드별 판정이라 표수 형식이 다름. 첫 번째 댄서 승률 59%(baseline)
 - [ ] feature 추출: MLAVL 저장소에는 추출 코드가 없으니 직접 작성한다
   - 영상: 32프레임 비중첩 클립 단위 Video Swin. **feature 차원이 `--in_dim`(768)과 맞아야 한다.** Swin-B는 1024차원이니 맞는 모델을 고르거나 `in_dim`을 바꾼다
   - 음악: AST (AudioSet). 같은 클립 경계로 정렬
   - 함성·MC 소리 때문에 비트 검출 품질을 확인한다. BRACE 제공 beat와 librosa/madmom 결과를 비교
-- [ ] 데이터 분할: 같은 댄서가 여러 해에 나오므로 **연도 단위 leave-one-year-out 교차검증**으로 누수를 막는다
+- [ ] 데이터 분할: 같은 댄서가 여러 해에 나오므로 **연도 단위 leave-one-year-out 교차검증**으로 누수를 막는다. BRACE 자체 train/test split은 sequence 단위라 배틀 평가에 못 쓴다(71개 영상이 양쪽에 걸침)
 
 ### Phase 5 · 배틀용 모델 (11/17–11/30)
 
