@@ -32,6 +32,7 @@ downloads/
 !FS_text_feature.npy
 !RG_text_feature.npy
 !LOGO_text_feature.npy
+!ours/vocab/BREAKING_text_feature.npy
 
 # ---- misc ----
 .DS_Store
