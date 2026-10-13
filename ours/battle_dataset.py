@@ -71,8 +71,8 @@ class BattleDataset(Dataset):
         it = self.items[i]
         va, aa = crop_or_pad(it['rgb_a'], it['audio_a'], self.n, self.rng)
         vb, ab = crop_or_pad(it['rgb_b'], it['audio_b'], self.n, self.rng)
-        y = it['y']
+        y, first = it['y'], 1.0              # first = 1 if the left-hand dancer danced first
         if self.rng.random() < self.swap:
-            va, aa, vb, ab, y = vb, ab, va, aa, 1 - y
+            va, aa, vb, ab, y, first = vb, ab, va, aa, 1 - y, -1.0
         f = lambda x: torch.from_numpy(np.ascontiguousarray(x)).float()
-        return f(va), f(aa), f(vb), f(ab), torch.tensor(float(y))
+        return f(va), f(aa), f(vb), f(ab), torch.tensor(float(y)), torch.tensor(first)

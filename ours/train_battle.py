@@ -3,7 +3,10 @@
 The same MLAVL network scores both dancers; P(A wins) = sigmoid(k * (s_A - s_B)) with a learnable scale k.
 Loss = BCE on the winner + MLAVL's label-free auxiliary terms (hard-triplet separation of the grade/text embeddings,
 CE that matches each grade embedding to its own text query), so the grading structure of the original model is kept.
-The score is antisymmetric in A/B and training swaps A/B at random, so the first-dancer prior (59%) is not used.
+The score is antisymmetric in A/B and training swaps A/B at random, so the first-dancer prior (59%) is not used,
+unless --order_bias adds a learned logit offset b for "the left-hand dancer danced first" (sign flips on swap).
+--freeze PREFIXES freezes those submodules (and keeps their BatchNorm statistics fixed), e.g. everything up to the
+fused clip features so only the text projection and the grading decoder/regressors adapt to battles.
 
 No validation split exists (81 battles), so the number of epochs is fixed in advance and the model after the last
 epoch is evaluated; nothing is selected on the test year. At test time each dancer is scored on overlapping
@@ -69,7 +72,12 @@ def run_fold(a, items, test_year, device, seed):
     test = [it for it in items if it['year'] == test_year]
     model = build_model(a, device)
     log_k = torch.nn.Parameter(torch.tensor(float(np.log(a.init_scale)), device=device))
-    params = [p for n_, p in model.named_parameters() if p.requires_grad] + [log_k]
+    bias = torch.nn.Parameter(torch.zeros((), device=device), requires_grad=a.order_bias)
+    frozen = [m for m in a.freeze.split(',') if m]
+    for n_, p in model.named_parameters():
+        if any(n_.startswith(m + '.') for m in frozen):
+            p.requires_grad = False
+    params = [p for n_, p in model.named_parameters() if p.requires_grad] + [log_k] + ([bias] if a.order_bias else [])
     opt = torch.optim.Adam(params, lr=a.lr, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, a.epochs, eta_min=a.lr * 0.01)
     lf = mlavl_loss.LossFun(a.alpha, 1.0, alpha_ce=a.alpha_ce)
@@ -77,11 +85,13 @@ def run_fold(a, items, test_year, device, seed):
                     num_workers=0, drop_last=False)
     for ep in range(a.epochs):
         model.train()
+        for m in frozen:
+            model.get_submodule(m).eval()
         tot = 0.0
-        for va, aa, vb, ab, y in dl:
-            va, aa, vb, ab, y = (t.to(device) for t in (va, aa, vb, ab, y))
+        for va, aa, vb, ab, y, first in dl:
+            va, aa, vb, ab, y, first = (t.to(device) for t in (va, aa, vb, ab, y, first))
             oa, ob = model(va, aa), model(vb, ab)
-            logit = log_k.exp() * (oa['output'] - ob['output'])
+            logit = log_k.exp() * (oa['output'] - ob['output']) + bias * first
             loss = F.binary_cross_entropy_with_logits(logit, y) + a.aux * 0.5 * (aux_loss(lf, oa) + aux_loss(lf, ob))
             opt.zero_grad()
             loss.backward()
@@ -94,11 +104,11 @@ def run_fold(a, items, test_year, device, seed):
     for it in test:
         sa = score(model, it['rgb_a'], it['audio_a'], a.clip_num, device)
         sb = score(model, it['rgb_b'], it['audio_b'], a.clip_num, device)
-        p = 1 / (1 + np.exp(-k * (sa - sb)))
+        p = 1 / (1 + np.exp(-(k * (sa - sb) + bias.item())))           # A always danced first at test
         rows.append({'video_id': it['video_id'], 'year': it['year'], 'round': it['round'], 'y': it['y'],
                      'score_a': sa, 'score_b': sb, 'p_a': p, 'correct': int((p > 0.5) == bool(it['y']))})
     train_loss = tot / len(train)
-    return rows, train_loss, k
+    return rows, train_loss, k, bias.item(), sum(p.numel() for p in params)
 
 
 def auc(y, p):
@@ -114,9 +124,10 @@ def main(a):
     os.makedirs(out_dir, exist_ok=True)
     rows, t0 = [], time.time()
     for year in sorted({it['year'] for it in items}):
-        r, tl, k = run_fold(a, items, year, device, a.seed)
+        r, tl, k, b, npar = run_fold(a, items, year, device, a.seed)
         acc = np.mean([x['correct'] for x in r])
-        print(f'fold {year}: n={len(r)} acc={acc:.3f} final train loss {tl:.4f} k={k:.1f} ({time.time() - t0:.0f}s)', flush=True)
+        print(f'fold {year}: n={len(r)} acc={acc:.3f} final train loss {tl:.4f} k={k:.1f} bias={b:.2f} '
+              f'trainable={npar / 1e6:.2f}M ({time.time() - t0:.0f}s)', flush=True)
         rows += r
     df = pd.DataFrame(rows)
     df.to_csv(os.path.join(out_dir, 'predictions.csv'), index=False)
@@ -152,4 +163,7 @@ if __name__ == '__main__':
     p.add_argument('--aux', type=float, default=0.1, help='weight of the MLAVL auxiliary loss relative to BCE')
     p.add_argument('--init_scale', type=float, default=10.0)
     p.add_argument('--seed', type=int, default=0)
+    p.add_argument('--freeze', default='', help='comma-separated submodule prefixes to freeze, e.g. '
+                   'proj_visual,proj_audio,transformer.encoder,gcn_V,gcn_A,T_decoder,clip_fusion')
+    p.add_argument('--order_bias', action='store_true', help='learn a first-dancer logit offset')
     main(p.parse_args())
