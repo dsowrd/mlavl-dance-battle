@@ -77,8 +77,12 @@ def run_fold(a, items, test_year, device, seed):
     for n_, p in model.named_parameters():
         if any(n_.startswith(m + '.') for m in frozen):
             p.requires_grad = False
-    params = [p for n_, p in model.named_parameters() if p.requires_grad] + [log_k] + ([bias] if a.order_bias else [])
-    opt = torch.optim.Adam(params, lr=a.lr, weight_decay=1e-4)
+    params = [p for n_, p in model.named_parameters() if p.requires_grad]
+    scalars = [log_k] + ([bias] if a.order_bias else [])
+    # the scale k and the order bias get their own, larger lr: with Adam a scalar moves ~lr per step, so at the
+    # model lr (1e-4) they could not leave their initial values within a few hundred steps (seen in rg_e10bias)
+    opt = torch.optim.Adam([{'params': params, 'lr': a.lr, 'weight_decay': 1e-4},
+                            {'params': scalars, 'lr': a.scalar_lr, 'weight_decay': 0.0}])
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, a.epochs, eta_min=a.lr * 0.01)
     lf = mlavl_loss.LossFun(a.alpha, 1.0, alpha_ce=a.alpha_ce)
     dl = DataLoader(BattleDataset(train, a.clip_num, swap=0.5, seed=seed), batch_size=a.batch, shuffle=True,
@@ -108,7 +112,7 @@ def run_fold(a, items, test_year, device, seed):
         rows.append({'video_id': it['video_id'], 'year': it['year'], 'round': it['round'], 'y': it['y'],
                      'score_a': sa, 'score_b': sb, 'p_a': p, 'correct': int((p > 0.5) == bool(it['y']))})
     train_loss = tot / len(train)
-    return rows, train_loss, k, bias.item(), sum(p.numel() for p in params)
+    return rows, train_loss, k, bias.item(), sum(p.numel() for p in params) + len(scalars)
 
 
 def auc(y, p):
@@ -166,4 +170,5 @@ if __name__ == '__main__':
     p.add_argument('--freeze', default='', help='comma-separated submodule prefixes to freeze, e.g. '
                    'proj_visual,proj_audio,transformer.encoder,gcn_V,gcn_A,T_decoder,clip_fusion')
     p.add_argument('--order_bias', action='store_true', help='learn a first-dancer logit offset')
+    p.add_argument('--scalar_lr', type=float, default=1e-2, help='lr of the logit scale k and the order bias')
     main(p.parse_args())
