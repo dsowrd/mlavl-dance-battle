@@ -199,6 +199,6 @@ P(A wins) = σ(k·(s_A − s_B)), BCE + 0.1 × MLAVL aux losses, clip_num 64, 40
 
 - Best setting (RG init) is the first one whose CI lower bound clears 50%, but it is not distinguishable from the first-dancer rule (59.3%); none of the three is a demonstrated improvement over the training-free baselines.
 - Initialising from an AQA model helps only from RG (rhythmic gymnastics: whole-body motion to music), not from Fis-V PCS; scratch is noisiest (seed agreement 0.71).
-- Over-confidence / over-fitting: final train loss 0.07–0.4 while test log loss is 0.92–1.06 (> 0.693 of a coin flip). The model memorises ~70 training battles in 40 epochs.
+- Over-confidence / over-fitting: final train loss 0.14–0.42 while test log loss is 0.92–1.06 (> 0.693 of a coin flip). The model memorises ~70 training battles in 40 epochs.
 - 2018 is the hardest year in every setting (33–60%).
 - Next: fewer epochs / smaller lr for the init runs, freeze the backbone part (S²CE + MAG²) and train only the grading head, add the first-dancer prior as a learned bias (the model is order-invariant by design), and the reviewed vocabulary.
