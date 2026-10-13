@@ -9,7 +9,10 @@ Built by `tools/battle/build_battle_labels.py` from public sources. Videos thems
   `dancer_a` is the dancer who danced first in the BRACE sequences, `sequence_uids` lists the BRACE sequences
   (one per round/turn), `round` is Top 16 / Quarterfinal / Semifinal / Final.
 - `winners.csv`: winner of each battle, parsed from the Wikipedia brackets, plus the bracket score.
-  `verified_by` is empty until a human (정현도) has checked the row.
+  `review` / `verified_by`: 정현도 checked 31 battles against the videos on 2026-10-13 (all 2011 and 2013 battles
+  and 8 of 2014; review page with per-round YouTube timestamps), all 31 correct (`checked_ok`). The other 50 were
+  accepted without a per-row check (`accepted_unchecked`). Re-running `build_battle_labels.py` rewrites the file
+  without these two columns, so re-apply them if you rebuild.
 
 ## Sources
 
