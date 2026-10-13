@@ -184,3 +184,21 @@ Pose statistics from the BRACE keypoints, aggregated over all of a dancer's segm
 - Every rule's CI contains 50%: with 81 battles, anything below ~61% is not distinguishable from chance. A learned model needs ≥ ~65% to be clearly better than the first-dancer rule.
 - Winners and losers are almost identical on these statistics (mean energy 0.0476 vs 0.0464, powermove share 0.39 vs 0.37, dancing time 78.6 s vs 78.9 s): judges are not rewarding "more" or "faster", which is the motivation for MLAVL-style assessment (musicality, vocabulary) rather than motion energy.
 - Year-to-year swings (energy rule 29% in 2014, 75% in 2011) are large because a year has only 8–15 battles; leave-one-year-out results must be pooled over all 81 battles, never reported per fold alone.
+
+### Siamese MLAVL, first run (2026-10-13, `scripts/run_battle.sh`, commit 43f98ef)
+
+P(A wins) = σ(k·(s_A − s_B)), BCE + 0.1 × MLAVL aux losses, clip_num 64, 40 epochs, lr 1e-4, batch 16, random A/B swap, leave-one-year-out (6 folds), model after the last epoch (no selection on the test year). Breaking vocabulary = unreviewed draft, vanilla-CLIP text features. GPU 0/1/3, ~35 min per seed (6 folds), ~2 GB VRAM.
+
+| init | acc (mean ± std over 3 seeds) | AUC | log loss | seed-ensemble acc (95% CI) | seed agreement |
+| --- | --- | --- | --- | --- | --- |
+| scratch | 55.6% ± 2.0 | 0.544 | 1.058 | 58.0% (46.9–69.1) | 0.71 |
+| Fis-V PCS ckpt | 54.7% ± 1.5 | 0.569 | 0.924 | 55.6% (44.4–65.4) | 0.91 |
+| RG Ribbon ckpt | **60.9% ± 1.2** | **0.605** | 0.987 | **61.7% (50.6–72.8)** | 0.84 |
+| *first dancer wins (rule)* | *59.3%* | | | *(48.1–70.4)* | |
+| *higher joint-speed energy (rule)* | *58.0%* | | | *(46.9–69.1)* | |
+
+- Best setting (RG init) is the first one whose CI lower bound clears 50%, but it is not distinguishable from the first-dancer rule (59.3%); none of the three is a demonstrated improvement over the training-free baselines.
+- Initialising from an AQA model helps only from RG (rhythmic gymnastics: whole-body motion to music), not from Fis-V PCS; scratch is noisiest (seed agreement 0.71).
+- Over-confidence / over-fitting: final train loss 0.07–0.4 while test log loss is 0.92–1.06 (> 0.693 of a coin flip). The model memorises ~70 training battles in 40 epochs.
+- 2018 is the hardest year in every setting (33–60%).
+- Next: fewer epochs / smaller lr for the init runs, freeze the backbone part (S²CE + MAG²) and train only the grading head, add the first-dancer prior as a learned bias (the model is order-invariant by design), and the reviewed vocabulary.
