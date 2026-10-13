@@ -189,7 +189,7 @@ CUDA_VISIBLE_DEVICES=0 $MLAVL_PY main.py ...
 
 - [x] **정규화 강화(dropout)**: RG dropout 0.3 → 0.5, 0.7을 seed 3개로 비교 (2026-10-12, `scripts/phase3_dropout.sh`). **결과: 0.5는 baseline과 같음(ρ 0.776 vs 0.775), 0.7은 악화(0.751 / MSE 6.40).** Transformer 내부 dropout은 과적합의 지렛대가 아니다. 다음 후보: epoch 축소, weight decay, 입력 feature dropout, temporal augmentation. 상세는 `experiments/EXPERIMENTS.md` 3-1
 - [x] **weight decay**: Adam L2 1e-4 → 1e-3, 1e-2를 seed 3개로 비교 (2026-10-12). **결과: 효과 없음** (ρ 0.772 / 0.773 vs baseline 0.775, train ρ 0.99 유지). Adam의 coupled L2라 무력화된 것으로 보임. 더 볼 거면 `--optim adamw`(decoupled)로. 상세는 `experiments/EXPERIMENTS.md` 3-2
-- [ ] **입력 쪽 정규화(ours)** (2026-10-13 정현도: 하이퍼파라미터 실험은 이걸로 마무리하고 Phase 4로 넘어감): `--clip_mask`(clip 단위 마스킹, V·A 동일 마스크) 0.1/0.25, `--input_dropout`(투영 후 토큰 dropout) 0.3/0.5를 seed 3개로 비교. 2026-10-13 10:29 시작 (`scripts/rg_sweep.sh mlavl_p3_input ...`, 48회, 약 8시간). 결과는 `experiments/EXPERIMENTS.md` 3-3
+- [x] **입력 쪽 정규화(ours)**: `--clip_mask` 0.1/0.25, `--input_dropout` 0.3/0.5를 seed 3개로 비교 (2026-10-13 10:29–18:20, 48회). **결과: 효과 없음.** input_dropout은 baseline과 동일(ρ 0.774 / 0.771 vs 0.775), clip_mask는 악화(0.765 / 0.753). train ρ 0.99 유지. 3-1~3-3 96회 모두 seed 노이즈 안 → 격차는 정규화가 아니라 입력 feature 문제로 결론. **하이퍼파라미터 실험은 여기서 종료(정현도)**, 기본값 0 유지. 상세는 `experiments/EXPERIMENTS.md` 3-3
 - [ ] **Multi-task head**: TES·PCS(+5개 세부점수)를 한 모델에서 같이 예측해 점수 간 상관을 활용
 - [ ] **고득점 과소추정 완화**: 고득점 샘플 가중 MSE, 또는 label distribution smoothing / balanced MSE
 - [ ] 각 개선의 ablation 표(ρ, MSE, 고득점 구간 MSE 별도)

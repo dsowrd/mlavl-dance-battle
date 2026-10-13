@@ -144,5 +144,21 @@ Settings: clip_mask 0.1, clip_mask 0.25, input_dropout 0.3, input_dropout 0.5; 3
 
 | Date | Commit | Dataset/score | Key args | GPU | Time | Max VRAM | best ρ (ep) | best MSE (ep) | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2026-10-13 | bf5dec5 | RG / 4 apparatus × seeds 0,1,2 | paper settings + `--clip_mask 0.1` → `0.25` → `--input_dropout 0.3` → `0.5` | 0/1/3 = seed 0/1/2; 4 concurrent per GPU | started 10:29 | | | | logs `logs/stdout/rg_*_s?_{cm0.1,cm0.25,id0.3,id0.5}_1013_*.log`. Requested by 정현도 ("1번 가자") |
+| 2026-10-13 | bf5dec5 | RG / 4 apparatus × seeds 0,1,2 | paper settings + `--clip_mask 0.1` | 0/1/3 = seed 0/1/2; 4 concurrent per GPU | 10:29–11:54 | ~1.8 GB | avg 0.765 | avg 5.33 | 12 runs, logs `logs/stdout/rg_*_s?_cm0.1_1013_1029.log` |
+| 2026-10-13 | bf5dec5 | RG / 4 apparatus × seeds 0,1,2 | paper settings + `--clip_mask 0.25` | 0/1/3 | ~11:55–13:45 | ~1.8 GB | avg 0.753 | avg 5.60 | 12 runs, logs `logs/stdout/rg_*_s?_cm0.25_1013_*.log` |
+| 2026-10-13 | bf5dec5 | RG / 4 apparatus × seeds 0,1,2 | paper settings + `--input_dropout 0.3` | 0/1/3 | ~13:45–16:05 | ~1.8 GB | avg 0.774 | avg 5.11 | 12 runs, logs `logs/stdout/rg_*_s?_id0.3_1013_*.log` |
+| 2026-10-13 | bf5dec5 | RG / 4 apparatus × seeds 0,1,2 | paper settings + `--input_dropout 0.5` | 0/1/3 | ~16:05–18:20 | ~1.8 GB | avg 0.771 | avg 5.17 | 12 runs, logs `logs/stdout/rg_*_s?_id0.5_1013_*.log`. Requested by 정현도 ("1번 가자") |
+
+**Result, 3 seeds each (mean ± std of per-apparatus best test ρ / best test MSE):**
+
+| Apparatus | baseline (paper) | clip_mask 0.1 | clip_mask 0.25 | input_dropout 0.3 | input_dropout 0.5 |
+| --- | --- | --- | --- | --- | --- |
+| Ball | 0.758 ± 0.009 / 5.52 | 0.758 ± 0.008 / 5.70 | 0.737 ± 0.016 / 6.16 | 0.750 ± 0.006 / 5.74 | 0.757 ± 0.011 / 5.72 |
+| Clubs | 0.749 ± 0.041 / 5.08 | 0.739 ± 0.024 / 5.14 | 0.702 ± 0.030 / 5.89 | 0.745 ± 0.030 / 5.07 | 0.738 ± 0.016 / 5.11 |
+| Hoop | 0.786 ± 0.035 / 4.73 | 0.789 ± 0.024 / 4.71 | 0.791 ± 0.017 / 4.72 | 0.796 ± 0.025 / 4.69 | 0.794 ± 0.005 / 4.70 |
+| Ribbon | 0.808 ± 0.030 / 5.05 | 0.774 ± 0.027 / 5.78 | 0.782 ± 0.035 / 5.62 | 0.804 ± 0.033 / 4.93 | 0.795 ± 0.033 / 5.17 |
+| **Avg** | **0.775 / 5.10** | **0.765 / 5.33** | **0.753 / 5.60** | **0.774 / 5.11** | **0.771 / 5.17** |
+| final train ρ | 0.99 | 0.99 | 0.99 | 0.99 | 0.98–0.99 |
+
+Conclusion: **no gain from input-side regularisation either.** Input dropout 0.3/0.5 is a wash (−0.001 / −0.004 ρ, within seed std); clip masking *hurts* monotonically (−0.010 at 0.1, −0.022 at 0.25, driven by Ball/Clubs/Ribbon) and train ρ stays 0.99 regardless, so masking 25 % of clips still does not stop memorisation — the model fits through whichever clips remain. Across 3-1/3-2/3-3 (dropout, L2, input dropout, clip masking; 96 runs) nothing moves the RG average by more than seed noise, which strongly suggests the −0.07 gap to the paper is not a regularisation problem but an input problem (the public 1024-d PAMFN features vs whatever 768-d features the authors used). **Phase 3 hyper-parameter sweeps stop here** (정현도, 2026-10-13); the improvement story for the mid-term presentation moves to the task-level changes (multi-task head, high-score weighting) and to the battle domain (Phase 4/5), where the baseline is ours anyway. Keep `--clip_mask 0 --input_dropout 0` (defaults).
 
