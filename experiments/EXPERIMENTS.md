@@ -144,5 +144,5 @@ Settings: clip_mask 0.1, clip_mask 0.25, input_dropout 0.3, input_dropout 0.5; 3
 
 | Date | Commit | Dataset/score | Key args | GPU | Time | Max VRAM | best ρ (ep) | best MSE (ep) | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2026-10-13 | (this) | RG / 4 apparatus × seeds 0,1,2 | paper settings + `--clip_mask 0.1` → `0.25` → `--input_dropout 0.3` → `0.5` | 0/1/3 = seed 0/1/2; 4 concurrent per GPU | started (see log) | | | | logs `logs/stdout/rg_*_s?_{cm0.1,cm0.25,id0.3,id0.5}_1013_*.log`. Requested by 정현도 ("1번 가자") |
+| 2026-10-13 | bf5dec5 | RG / 4 apparatus × seeds 0,1,2 | paper settings + `--clip_mask 0.1` → `0.25` → `--input_dropout 0.3` → `0.5` | 0/1/3 = seed 0/1/2; 4 concurrent per GPU | started 10:29 | | | | logs `logs/stdout/rg_*_s?_{cm0.1,cm0.25,id0.3,id0.5}_1013_*.log`. Requested by 정현도 ("1번 가자") |
 
