@@ -202,3 +202,17 @@ P(A wins) = σ(k·(s_A − s_B)), BCE + 0.1 × MLAVL aux losses, clip_num 64, 40
 - Over-confidence / over-fitting: final train loss 0.14–0.42 while test log loss is 0.92–1.06 (> 0.693 of a coin flip). The model memorises ~70 training battles in 40 epochs.
 - 2018 is the hardest year in every setting (33–60%).
 - Next: fewer epochs / smaller lr for the init runs, freeze the backbone part (S²CE + MAG²) and train only the grading head, add the first-dancer prior as a learned bias (the model is order-invariant by design), and the reviewed vocabulary.
+
+### Siamese MLAVL, round 2: less fitting (2026-10-13/14, RG Ribbon init, 3 seeds each)
+
+| setting | acc (mean ± std) | AUC | log loss | seed-ensemble acc (95% CI) | final train loss |
+| --- | --- | --- | --- | --- | --- |
+| RG init, 40 ep, lr 1e-4 (round 1) | **60.9% ± 1.2** | **0.605** | 0.987 | **61.7% (50.6–72.8)** | 0.14–0.42 |
+| 10 epochs | 56.0% ± 2.3 | 0.580 | 0.845 | 58.0% (46.9–69.1) | 0.53–0.76 |
+| 20 epochs, lr 5e-5 | 55.6% ± 2.7 | 0.580 | 0.881 | 56.8% (45.7–67.9) | 0.44–0.66 |
+| freeze proj/S²CE/MAG²/AVCF, train text proj + grading decoder (2.97 M params) | 48.6% ± 1.2 | 0.511 | 0.696 | 50.6% (39.5–61.7) | 0.83–0.93 |
+| 10 epochs + first-dancer bias | *invalid, see below* | | | | |
+
+- Training less makes the predictions less over-confident (log loss 0.99 → 0.85) but does not raise accuracy; freezing the RG-trained front end leaves the model at chance (log loss 0.696 = it outputs ~0.5), so the RG features are not directly usable for battles and the front end has to adapt.
+- All settings so far lie in 55–61%, inside one another's CIs: with 81 battles, settings cannot be ranked yet. The round-1 RG-init number is the best point estimate, not a proven winner.
+- **Bug found (fixed in 5a825e8):** the logit scale k and the order bias were trained at the model lr (1e-4); with Adam a scalar moves ~lr per step, so in ≤ 200 steps they stayed at their initial values (bias printed 0.00 in every fold, results identical to "10 epochs"). They now have their own lr (`--scalar_lr 1e-2`). The invalid bias run was discarded (logs moved to `logs/stdout/old/`). Earlier accuracies are unaffected (k does not change the sign of s_A − s_B); their log losses were computed with k ≈ 10 throughout. Rerunning: `rg_e10bias` and `initRG_bias` (40 ep).
