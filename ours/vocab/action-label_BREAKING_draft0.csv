@@ -1,0 +1,91 @@
+id,name,category
+0,a video of toprock,toprock
+1,a video of an indian step,toprock
+2,a video of a cross step,toprock
+3,a video of a kick step,toprock
+4,a video of a go-down,transition
+5,a video of a knee drop,transition
+6,a video of a coin drop,transition
+7,a video of six-step footwork,footwork
+8,a video of three-step footwork,footwork
+9,a video of CC footwork,footwork
+10,a video of a zulu spin,footwork
+11,a video of kick-out footwork,footwork
+12,a video of a helicopter sweep,footwork
+13,a video of shuffle footwork,footwork
+14,a video of a baby freeze,freeze
+15,a video of an air chair freeze,freeze
+16,a video of a headstand freeze,freeze
+17,a video of an elbow freeze,freeze
+18,a video of a hollowback freeze,freeze
+19,a video of a handstand freeze,freeze
+20,a video of a windmill,power
+21,a video of a flare,power
+22,a video of a headspin,power
+23,a video of an air flare,power
+24,a video of a swipe,power
+25,a video of a 1990 one-hand spin,power
+26,a video of a halo spin,power
+27,a video of a backspin,power
+28,a video of turtles,power
+29,a video of an elbow spin,power
+30,a video of a kip-up,trick
+31,a video of a threading move,trick
+32,a video of hand hops,trick
+33,a video of a dancer crashing,negative
+34,a video of a dancer burning the opponent,battle
+35,a video of a dancer hitting the beat,musicality
+36,a music suitable for toprock,toprock
+37,a music suitable for an indian step,toprock
+38,a music suitable for a cross step,toprock
+39,a music suitable for a kick step,toprock
+40,a music suitable for a go-down,transition
+41,a music suitable for a knee drop,transition
+42,a music suitable for a coin drop,transition
+43,a music suitable for six-step footwork,footwork
+44,a music suitable for three-step footwork,footwork
+45,a music suitable for CC footwork,footwork
+46,a music suitable for a zulu spin,footwork
+47,a music suitable for kick-out footwork,footwork
+48,a music suitable for a helicopter sweep,footwork
+49,a music suitable for shuffle footwork,footwork
+50,a music suitable for a baby freeze,freeze
+51,a music suitable for an air chair freeze,freeze
+52,a music suitable for a headstand freeze,freeze
+53,a music suitable for an elbow freeze,freeze
+54,a music suitable for a hollowback freeze,freeze
+55,a music suitable for a handstand freeze,freeze
+56,a music suitable for a windmill,power
+57,a music suitable for a flare,power
+58,a music suitable for a headspin,power
+59,a music suitable for an air flare,power
+60,a music suitable for a swipe,power
+61,a music suitable for a 1990 one-hand spin,power
+62,a music suitable for a halo spin,power
+63,a music suitable for a backspin,power
+64,a music suitable for turtles,power
+65,a music suitable for an elbow spin,power
+66,a music suitable for a kip-up,trick
+67,a music suitable for a threading move,trick
+68,a music suitable for hand hops,trick
+69,a music suitable for a dancer crashing,negative
+70,a music suitable for burning the opponent,battle
+71,a music suitable for hitting the beat,musicality
+72,a video of bad breaking performance without fitting music,grade_AV
+73,a video of bad breaking performance with fitting music,grade_AV
+74,a video of poor breaking performance without fitting music,grade_AV
+75,a video of poor breaking performance with fitting music,grade_AV
+76,a video of fair breaking performance without fitting music,grade_AV
+77,a video of fair breaking performance with fitting music,grade_AV
+78,a video of good breaking performance without fitting music,grade_AV
+79,a video of good breaking performance with fitting music,grade_AV
+80,a video of excellent breaking performance without fitting music,grade_AV
+81,a video of excellent breaking performance with fitting music,grade_AV
+82,a video of perfect breaking performance without fitting music,grade_AV
+83,a video of perfect breaking performance with fitting music,grade_AV
+84,a video of bad breaking performance,grade_V
+85,a video of poor breaking performance,grade_V
+86,a video of fair breaking performance,grade_V
+87,a video of good breaking performance,grade_V
+88,a video of excellent breaking performance,grade_V
+89,a video of perfect breaking performance,grade_V
