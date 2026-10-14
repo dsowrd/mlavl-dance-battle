@@ -8,18 +8,20 @@
 # Output: $MLAVL_DATA/videos/brace/{video_id}.mp4 (1080p, BRACE keypoints are in 1920x1080 pixel coordinates).
 # Codec: H.264 preferred, then VP9; AV1 is excluded because the server ffmpeg 4.4 has no software AV1 decoder.
 # Frame rate is whatever YouTube serves (25 or 29.97 fps) and matches the fps column of BRACE videos_info.csv.
+# Other lists: INFO=ours/battle/extra_battles.csv OUT=$MLAVL_DATA/videos/bcone_extra HEIGHT=720 bash ... (rows with in_brace=1 are skipped by the archive only if already downloaded there).
 # Resumable: finished ids are listed in downloaded.txt; failures go to failed.txt.
 set -uo pipefail
 cd "$(dirname "$0")/../.."
 source scripts/env.sh
-INFO=${MLAVL_DATA}/datasets/brace/repo/videos_info.csv
-OUT=${MLAVL_DATA}/videos/brace
+INFO=${INFO:-${MLAVL_DATA}/datasets/brace/repo/videos_info.csv}   # any CSV whose first column is the video id
+OUT=${OUT:-${MLAVL_DATA}/videos/brace}
+H=${HEIGHT:-1080}
 mkdir -p "$OUT"
 if [ $# -gt 0 ]; then IDS=("$@"); else mapfile -t IDS < <(awk -F, 'NR>1{print $1}' "$INFO"); fi
 echo "[$(date)] ${#IDS[@]} videos -> $OUT"
 for id in "${IDS[@]}"; do
   "$MLAVL_PY" -m yt_dlp --no-progress --ffmpeg-location /home/irl/anaconda3/bin \
-    -f "bv*[height<=1080][vcodec^=avc1]+ba[ext=m4a]/bv*[height<=1080][vcodec^=vp9]+ba[ext=m4a]/bv*[height<=1080][vcodec!^=av01]+ba/b[height<=1080]" \
+    -f "bv*[height<=$H][vcodec^=avc1]+ba[ext=m4a]/bv*[height<=$H][vcodec^=vp9]+ba[ext=m4a]/bv*[height<=$H][vcodec!^=av01]+ba/b[height<=$H]" \
     --merge-output-format mp4 --download-archive "$OUT/downloaded.txt" \
     -o "$OUT/%(id)s.%(ext)s" "https://www.youtube.com/watch?v=$id" \
     || { echo "$id" >> "$OUT/failed.txt"; echo "FAILED $id"; }

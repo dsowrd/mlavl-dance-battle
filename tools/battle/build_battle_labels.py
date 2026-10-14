@@ -45,6 +45,7 @@ def clean(cell):
 
 def normalise(text):
     text = re.sub(r'<!--.*?-->', '', text, flags=re.S)
+    text = re.sub(r'\{\{(?:ref|note|efn)\|[^{}]*\}\}', '', text)   # footnote markers inside names (2025)
     text = text.replace('{{!}}', '/')
     text = re.sub(r'\{\{#invoke:flag\|icon\|[^}]*\}\}', '§FLAG ', text)
     text = re.sub(r'\[\[(?:[^|\]]*\|)?([^\]]*)\]\]', r'\1', text)
@@ -68,7 +69,8 @@ def template_end(text, start):
 
 
 def entrant(cell):
-    return {'name': clean(cell), 'bold': "'''" in cell}
+    m = re.search(r'<sup>\s*(\d)', cell)      # <sup>1</sup> = danced first, <sup>2</sup> = second (1/2 = overtime)
+    return {'name': clean(cell), 'bold': "'''" in cell, 'order': int(m.group(1)) if m else None}
 
 
 def matches_round_template(body, kind):
@@ -106,6 +108,9 @@ def matches_bracket_module(body):
 def parse_wiki(text):
     year_heads = [(m.start(), int(m.group(1))) for m in re.finditer(r'^===\s*(\d{4})\s*===\s*$', text, flags=re.M)]
     div_heads = [(m.start(), m.group(1)) for m in re.finditer(r'^====\s*(.*?)\s*====\s*$', text, flags=re.M)]
+    div_heads += [(m.start(), m.group(1)) for m in re.finditer(r"^'''(B-?(?:boy|girl) World Final)'''\s*$", text,
+                                                                flags=re.M | re.I)]   # 2025 uses bold lines
+    div_heads.sort()
     records = []
     for m in re.finditer(r'(?<!<nowiki>)\{\{(Round16|Round8|#invoke:bracket\|16TeamBracket)', text):
         start = m.start()
