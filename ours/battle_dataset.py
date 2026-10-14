@@ -24,10 +24,14 @@ def load_battles(features, brace, labels):
         out = {'video_id': r.video_id, 'year': int(r.year), 'round': r.round, 'y': int(r.winner_is_a),
                'dancer_a': r.dancer_a, 'dancer_b': r.dancer_b}
         for side, name in (('a', r.dancer_a), ('b', r.dancer_b)):
-            rounds = g[g.dancer == name][['start_frame', 'end_frame']].values
+            rounds = g[g.dancer == name].sort_values('start_frame')[['start_frame', 'end_frame']].values
             keep = np.zeros(len(starts), bool)
+            out['rounds_' + side] = []
             for s, e in rounds:
-                keep |= (starts >= s) & (starts + L <= e + 1)
+                m = (starts >= s) & (starts + L <= e + 1)
+                keep |= m
+                if m.any():
+                    out['rounds_' + side].append((d['rgb'][m], d['audio'][m]))
             out['rgb_' + side] = d['rgb'][keep]
             out['audio_' + side] = d['audio'][keep]
         items.append(out)
@@ -76,3 +80,33 @@ class BattleDataset(Dataset):
             va, aa, vb, ab, y, first = vb, ab, va, aa, 1 - y, -1.0
         f = lambda x: torch.from_numpy(np.ascontiguousarray(x)).float()
         return f(va), f(aa), f(vb), f(ab), torch.tensor(float(y)), torch.tensor(first)
+
+
+def round_pairs(item):
+    """The i-th round of A paired with the i-th round of B (battles alternate A, B, A, B, ...)."""
+    n = min(len(item['rounds_a']), len(item['rounds_b']))
+    return [(item['rounds_a'][i], item['rounds_b'][i]) for i in range(n)]
+
+
+class RoundPairDataset(BattleDataset):
+    """Round-level training pairs: every (round i of A, round i of B) of a training battle is one example labelled
+    with the battle winner (a noisy label for a single round: judges vote on the whole battle). Gives ~2.9 pairs per
+    battle instead of 1."""
+
+    def __init__(self, items, clip_num=32, swap=0.5, seed=0):
+        super().__init__(items, clip_num, swap, seed)
+        self.pairs = [(it, ra, rb) for it in items for ra, rb in round_pairs(it)]
+
+    def __len__(self):
+        return len(self.pairs)
+
+    def __getitem__(self, i):
+        it, (va, aa), (vb, ab) = self.pairs[i]
+        va, aa = crop_or_pad(va, aa, self.n, self.rng)
+        vb, ab = crop_or_pad(vb, ab, self.n, self.rng)
+        y, first = it['y'], 1.0
+        if self.rng.random() < self.swap:
+            va, aa, vb, ab, y, first = vb, ab, va, aa, 1 - y, -1.0
+        f = lambda x: torch.from_numpy(np.ascontiguousarray(x)).float()
+        return f(va), f(aa), f(vb), f(ab), torch.tensor(float(y)), torch.tensor(first)
+

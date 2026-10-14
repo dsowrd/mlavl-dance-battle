@@ -33,7 +33,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import options  # noqa: E402
 from models import loss as mlavl_loss  # noqa: E402
 from models.model import MLAVL  # noqa: E402
-from ours.battle_dataset import BattleDataset, load_battles, windows  # noqa: E402
+from ours.battle_dataset import BattleDataset, RoundPairDataset, load_battles, round_pairs, windows  # noqa: E402
 
 
 def build_model(a, device):
@@ -85,7 +85,8 @@ def run_fold(a, items, test_year, device, seed):
                             {'params': scalars, 'lr': a.scalar_lr, 'weight_decay': 0.0}])
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, a.epochs, eta_min=a.lr * 0.01)
     lf = mlavl_loss.LossFun(a.alpha, 1.0, alpha_ce=a.alpha_ce)
-    dl = DataLoader(BattleDataset(train, a.clip_num, swap=0.5, seed=seed), batch_size=a.batch, shuffle=True,
+    DS = RoundPairDataset if a.unit == 'round' else BattleDataset
+    dl = DataLoader(DS(train, a.clip_num, swap=0.5, seed=seed), batch_size=a.batch, shuffle=True,
                     num_workers=0, drop_last=False)
     for ep in range(a.epochs):
         model.train()
@@ -106,12 +107,17 @@ def run_fold(a, items, test_year, device, seed):
     k = log_k.exp().item()
     rows = []
     for it in test:
-        sa = score(model, it['rgb_a'], it['audio_a'], a.clip_num, device)
-        sb = score(model, it['rgb_b'], it['audio_b'], a.clip_num, device)
+        if a.unit == 'round':   # battle logit = mean over round pairs of the round-level logits
+            sc = [(score(model, ra[0], ra[1], a.clip_num, device), score(model, rb[0], rb[1], a.clip_num, device))
+                  for ra, rb in round_pairs(it)]
+            sa, sb = float(np.mean([x[0] for x in sc])), float(np.mean([x[1] for x in sc]))
+        else:
+            sa = score(model, it['rgb_a'], it['audio_a'], a.clip_num, device)
+            sb = score(model, it['rgb_b'], it['audio_b'], a.clip_num, device)
         p = 1 / (1 + np.exp(-(k * (sa - sb) + bias.item())))           # A always danced first at test
         rows.append({'video_id': it['video_id'], 'year': it['year'], 'round': it['round'], 'y': it['y'],
                      'score_a': sa, 'score_b': sb, 'p_a': p, 'correct': int((p > 0.5) == bool(it['y']))})
-    train_loss = tot / len(train)
+    train_loss = tot / len(dl.dataset)
     return rows, train_loss, k, bias.item(), sum(p.numel() for p in params) + len(scalars)
 
 
@@ -167,6 +173,8 @@ if __name__ == '__main__':
     p.add_argument('--aux', type=float, default=0.1, help='weight of the MLAVL auxiliary loss relative to BCE')
     p.add_argument('--init_scale', type=float, default=10.0)
     p.add_argument('--seed', type=int, default=0)
+    p.add_argument('--unit', choices=['battle', 'round'], default='battle',
+                   help="training examples: whole battles, or round pairs labelled with the battle winner")
     p.add_argument('--freeze', default='', help='comma-separated submodule prefixes to freeze, e.g. '
                    'proj_visual,proj_audio,transformer.encoder,gcn_V,gcn_A,T_decoder,clip_fusion')
     p.add_argument('--order_bias', action='store_true', help='learn a first-dancer logit offset')
