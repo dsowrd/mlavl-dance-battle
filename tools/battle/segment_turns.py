@@ -211,6 +211,10 @@ def evaluate(a):
             with torch.no_grad():
                 p = torch.sigmoid(m(torch.from_numpy(X)[None].to(device))[0]).cpu().numpy()
             lab, on, sc = decode_turns(p[:, 0], p[:, 1])
+            cut_p = [p[t, 1] for t in np.where(np.diff(lab.astype(int)) != 0)[0] + 1 if lab[t] > 0]
+            os.makedirs(os.path.join(a.features, 'turns_loyo'), exist_ok=True)   # held-out-year turns for BRACE
+            np.savez(os.path.join(a.features, 'turns_loyo', vid + '.npz'), dancer=lab, p_dancing=p[:, 0],
+                     p_start=p[:, 1], score=sc, min_cut_p=float(min(cut_p) if cut_p else 0.0))
             lab_cluster = assign_dancers(X[:, :1024], on)              # appearance clustering (kept for reference)
             dancing_clips = truth > 0
             rows.append({'video_id': vid, 'year': y,

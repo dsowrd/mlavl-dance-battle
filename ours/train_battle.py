@@ -34,7 +34,7 @@ import options  # noqa: E402
 from models import loss as mlavl_loss  # noqa: E402
 from models.model import MLAVL  # noqa: E402
 from ours.pose_branch import add_pose_branch  # noqa: E402
-from ours.battle_dataset import (BattleDataset, RoundPairDataset, load_battles, load_extra_battles,  # noqa: E402
+from ours.battle_dataset import (BattleDataset, RoundPairDataset, load_battles, load_brace_auto, load_extra_battles,  # noqa: E402
                                  round_pairs, windows)
 
 
@@ -137,7 +137,12 @@ def auc(y, p):
 
 def main(a):
     device = torch.device('cuda')
-    items = load_battles(a.features, a.brace, a.labels, pose=a.pose)
+    if a.brace_auto_turns:   # BRACE with automatic turns (segmentation-noise check); source 'brace_auto' is evaluated
+        items = load_brace_auto(a.features, a.labels)
+        for it in items:
+            it['source'] = 'brace'
+    else:
+        items = load_battles(a.features, a.brace, a.labels, pose=a.pose)
     if a.extra:
         assert not a.pose, 'extra battles have no BRACE keypoints, so --pose cannot be combined with --extra'
         extra, skipped = load_extra_battles(a.extra_features, a.extra_csv, a.extra_min_cut_p)
@@ -190,6 +195,8 @@ if __name__ == '__main__':
     p.add_argument('--aux', type=float, default=0.1, help='weight of the MLAVL auxiliary loss relative to BCE')
     p.add_argument('--init_scale', type=float, default=10.0)
     p.add_argument('--seed', type=int, default=0)
+    p.add_argument('--brace_auto_turns', action='store_true',
+                   help='use held-out-year automatic turns for BRACE instead of the human annotation')
     p.add_argument('--extra', action='store_true', help='also train on the extra (non-BRACE) battles')
     p.add_argument('--extra_features', default='/data/mlavl/features/BCONE_EXTRA')
     p.add_argument('--extra_csv', default='ours/battle/extra_battles.csv')

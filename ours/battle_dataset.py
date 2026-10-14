@@ -105,6 +105,26 @@ def turns_to_rounds(dancer, rgb, audio, side):
     return [(rgb[r], audio[r]) for r in rounds]
 
 
+def load_brace_auto(features, labels, turns_dir='turns_loyo', min_cut_p=0.0):
+    """BRACE battles with automatic (held-out-year) turns instead of the human round annotation, to measure how much
+    the turn segmentation errors cost the battle model (same format as load_extra_battles)."""
+    w = pd.read_csv(os.path.join(labels, 'winners.csv'))
+    items = []
+    for r in w.itertuples():
+        d = np.load(os.path.join(features, 'clips', r.video_id + '.npz'))
+        t = np.load(os.path.join(features, turns_dir, r.video_id + '.npz'))
+        if float(t['min_cut_p']) < min_cut_p:
+            continue
+        it = {'video_id': r.video_id, 'year': int(r.year), 'round': r.round, 'y': int(r.winner_is_a),
+              'dancer_a': r.dancer_a, 'dancer_b': r.dancer_b, 'source': 'brace_auto'}
+        for side in 'ab':
+            it['rounds_' + side] = turns_to_rounds(t['dancer'], d['rgb'], d['audio'], side)
+            it['rgb_' + side] = np.concatenate([x[0] for x in it['rounds_' + side]]) if it['rounds_' + side] else d['rgb'][:1]
+            it['audio_' + side] = np.concatenate([x[1] for x in it['rounds_' + side]]) if it['rounds_' + side] else d['audio'][:1]
+        items.append(it)
+    return items
+
+
 def load_extra_battles(features, csv, min_cut_p=0.4, years=None):
     """Battles outside BRACE (ours/battle/extra_battles.csv) with automatic turns; only videos whose weakest turn
     start has p >= min_cut_p (on BRACE these have 89% clip-level dancer accuracy) and both dancers >= 2 rounds."""
