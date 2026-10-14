@@ -145,7 +145,8 @@ def main(a):
         items = load_battles(a.features, a.brace, a.labels, pose=a.pose)
     if a.extra:
         assert not a.pose, 'extra battles have no BRACE keypoints, so --pose cannot be combined with --extra'
-        extra, skipped = load_extra_battles(a.extra_features, a.extra_csv, a.extra_min_cut_p)
+        extra, skipped = load_extra_battles(a.extra_features, a.extra_csv, a.extra_min_cut_p,
+                                            min_consistency=a.extra_min_consistency)
         print(f'extra battles: {len(extra)} used, {skipped} skipped (missing features / low-confidence turns)')
         items += extra
     out_dir = os.path.join('logs/battle', a.name)
@@ -200,7 +201,8 @@ if __name__ == '__main__':
     p.add_argument('--extra', action='store_true', help='also train on the extra (non-BRACE) battles')
     p.add_argument('--extra_features', default='/data/mlavl/features/BCONE_EXTRA')
     p.add_argument('--extra_csv', default='ours/battle/extra_battles.csv')
-    p.add_argument('--extra_min_cut_p', type=float, default=0.4)
+    p.add_argument('--extra_min_cut_p', type=float, default=0.0)
+    p.add_argument('--extra_min_consistency', type=float, default=0.8)
     p.add_argument('--test_on', choices=['brace', 'all'], default='brace',
                    help='evaluate on BRACE battles only (human round annotation) or also on the extra battles')
     p.add_argument('--pose', action='store_true', help='add the pose / kick-beat branch (ours/pose_branch.py)')

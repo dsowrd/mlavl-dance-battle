@@ -125,9 +125,14 @@ def load_brace_auto(features, labels, turns_dir='turns_loyo', min_cut_p=0.0):
     return items
 
 
-def load_extra_battles(features, csv, min_cut_p=0.4, years=None):
-    """Battles outside BRACE (ours/battle/extra_battles.csv) with automatic turns; only videos whose weakest turn
-    start has p >= min_cut_p (on BRACE these have 89% clip-level dancer accuracy) and both dancers >= 2 rounds."""
+def load_extra_battles(features, csv, min_cut_p=0.0, years=None, min_consistency=0.8):
+    """Battles outside BRACE (ours/battle/extra_battles.csv) with automatic turns, kept only if (a) the weakest turn
+    start has p >= min_cut_p and (b) the turn-level appearance consistency (tools/battle/segment_turns.py
+    turn_consistency, dancer crops) is >= min_consistency, and both dancers have >= 2 rounds. On BRACE, consistency
+    >= 0.8 keeps 49/81 videos at 91.7% clip-level dancer accuracy with no phase-flipped video."""
+    import sys
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'tools', 'battle'))
+    from segment_turns import turn_consistency
     e = pd.read_csv(csv)
     e = e[e.in_brace == 0]
     items, skipped = [], 0
@@ -140,6 +145,15 @@ def load_extra_battles(features, csv, min_cut_p=0.4, years=None):
         if float(t['min_cut_p']) < min_cut_p:
             skipped += 1
             continue
+        af = os.path.join(features, 'appearance', r.video_id + '.npz')
+        if min_consistency > 0:
+            if not os.path.exists(af):
+                skipped += 1
+                continue
+            ap = np.load(af)
+            if turn_consistency(t['dancer'], ap['emb'], ap['has'])[0] < min_consistency:
+                skipped += 1
+                continue
         it = {'video_id': r.video_id, 'year': int(r.year), 'round': r.round, 'y': int(r.winner_is_a),
               'dancer_a': r.dancer_a, 'dancer_b': r.dancer_b, 'source': 'extra'}
         for side in 'ab':
