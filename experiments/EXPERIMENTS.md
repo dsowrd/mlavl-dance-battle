@@ -235,3 +235,17 @@ Reference changed (정현도, 2026-10-14): the task is judging who danced better
 - Round-level pairs (each round of A vs the same-index round of B, labelled with the battle winner) remove the signal: judges vote on the whole battle, single rounds do not carry it, and the extra (noisy) pairs make the model fit noise (train loss 0.08, test log loss 1.5). Dropped.
 - Vocabulary v1 vs draft0: −3.7 points accuracy, +0.015 AUC; indistinguishable with 81 battles. Both are kept as options; the decision needs more battles.
 - With 81 battles every comparison between settings is inside the noise. Next: more battles (203 extra World Final battles being downloaded and segmented automatically), and the pose / kick-beat branch on BRACE (running).
+
+### Round 4: pose / kick-beat branch (2026-10-14, BRACE, RG Ribbon init, 40 epochs, 3 seeds)
+
+`--pose`: 115-d clip features from BRACE keypoints + kick-beat alignment, added to the video tokens through a gate that starts at 0 (`ours/pose_branch.py`).
+
+| run | vocab | acc mean ± std | AUC | log loss | ensemble acc (95% CI) | p(acc≤50%) |
+| --- | --- | --- | --- | --- | --- | --- |
+| initRG | draft0 | 60.9% ± 1.2 | 0.605 | 0.987 | 61.7% (50.6–72.8) | 0.015 |
+| d0_pose | draft0 | 58.0% ± 1.7 | 0.581 | 1.297 | 61.7% (50.6–71.6) | 0.016 |
+| v1_battle | v1 | 57.2% ± 1.5 | 0.620 | 1.156 | 58.0% (46.9–69.1) | 0.071 |
+| v1_pose | v1 | 58.0% ± 1.0 | 0.596 | 1.328 | 60.5% (49.4–70.4) | 0.029 |
+
+- No gain. The learned pose gate ends between −0.21 and +0.19 with a sign that changes across folds and seeds: the model does not find a consistent use for pose with ~70 training battles. Kick-beat alignment alone does not separate winners either (winner 0.468 vs loser 0.472; "higher BAS wins" 44%).
+- Pose stays BRACE-only (the extra battles have no keypoints); it is revisited only if the larger dataset shows headroom.
