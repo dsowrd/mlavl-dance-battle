@@ -33,6 +33,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import options  # noqa: E402
 from models import loss as mlavl_loss  # noqa: E402
 from models.model import MLAVL  # noqa: E402
+from ours.pose_branch import add_pose_branch  # noqa: E402
 from ours.battle_dataset import BattleDataset, RoundPairDataset, load_battles, round_pairs, windows  # noqa: E402
 
 
@@ -47,6 +48,8 @@ def build_model(a, device):
         sd = {k: v for k, v in sd.items() if k != 'text_feature'}       # vocabulary differs; keep ours
         missing, unexpected = model.load_state_dict(sd, strict=False)
         assert set(missing) <= {'text_feature'} and not unexpected, (missing, unexpected)
+    if a.pose:
+        add_pose_branch(model)
     return model
 
 
@@ -77,8 +80,8 @@ def run_fold(a, items, test_year, device, seed):
     for n_, p in model.named_parameters():
         if any(n_.startswith(m + '.') for m in frozen):
             p.requires_grad = False
-    params = [p for n_, p in model.named_parameters() if p.requires_grad]
-    scalars = [log_k] + ([bias] if a.order_bias else [])
+    params = [p for n_, p in model.named_parameters() if p.requires_grad and not n_.endswith('.gate')]
+    scalars = [log_k] + ([bias] if a.order_bias else []) + [p for n_, p in model.named_parameters() if n_.endswith('.gate')]
     # the scale k and the order bias get their own, larger lr: with Adam a scalar moves ~lr per step, so at the
     # model lr (1e-4) they could not leave their initial values within a few hundred steps (seen in rg_e10bias)
     opt = torch.optim.Adam([{'params': params, 'lr': a.lr, 'weight_decay': 1e-4},
@@ -118,7 +121,8 @@ def run_fold(a, items, test_year, device, seed):
         rows.append({'video_id': it['video_id'], 'year': it['year'], 'round': it['round'], 'y': it['y'],
                      'score_a': sa, 'score_b': sb, 'p_a': p, 'correct': int((p > 0.5) == bool(it['y']))})
     train_loss = tot / len(dl.dataset)
-    return rows, train_loss, k, bias.item(), sum(p.numel() for p in params) + len(scalars)
+    gate = [p.item() for n_, p in model.named_parameters() if n_.endswith('.gate')]
+    return rows, train_loss, k, bias.item(), sum(p.numel() for p in params) + len(scalars), gate
 
 
 def auc(y, p):
@@ -129,15 +133,15 @@ def auc(y, p):
 
 def main(a):
     device = torch.device('cuda')
-    items = load_battles(a.features, a.brace, a.labels)
+    items = load_battles(a.features, a.brace, a.labels, pose=a.pose)
     out_dir = os.path.join('logs/battle', a.name)
     os.makedirs(out_dir, exist_ok=True)
     rows, t0 = [], time.time()
     for year in sorted({it['year'] for it in items}):
-        r, tl, k, b, npar = run_fold(a, items, year, device, a.seed)
+        r, tl, k, b, npar, gate = run_fold(a, items, year, device, a.seed)
         acc = np.mean([x['correct'] for x in r])
         print(f'fold {year}: n={len(r)} acc={acc:.3f} final train loss {tl:.4f} k={k:.1f} bias={b:.2f} '
-              f'trainable={npar / 1e6:.2f}M ({time.time() - t0:.0f}s)', flush=True)
+              f'trainable={npar / 1e6:.2f}M' + (f' pose_gate={gate[0]:.3f}' if gate else '') + f' ({time.time() - t0:.0f}s)', flush=True)
         rows += r
     df = pd.DataFrame(rows)
     df.to_csv(os.path.join(out_dir, 'predictions.csv'), index=False)
@@ -173,6 +177,7 @@ if __name__ == '__main__':
     p.add_argument('--aux', type=float, default=0.1, help='weight of the MLAVL auxiliary loss relative to BCE')
     p.add_argument('--init_scale', type=float, default=10.0)
     p.add_argument('--seed', type=int, default=0)
+    p.add_argument('--pose', action='store_true', help='add the pose / kick-beat branch (ours/pose_branch.py)')
     p.add_argument('--unit', choices=['battle', 'round'], default='battle',
                    help="training examples: whole battles, or round pairs labelled with the battle winner")
     p.add_argument('--freeze', default='', help='comma-separated submodule prefixes to freeze, e.g. '

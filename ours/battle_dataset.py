@@ -13,12 +13,15 @@ import torch
 from torch.utils.data import Dataset
 
 
-def load_battles(features, brace, labels):
+def load_battles(features, brace, labels, pose=False):
     seqs = pd.read_csv(os.path.join(brace, 'repo/annotations/sequences.csv'))
     win = pd.read_csv(os.path.join(labels, 'winners.csv'))
     items = []
     for r in win.itertuples():
-        d = np.load(os.path.join(features, 'clips', r.video_id + '.npz'))
+        d = dict(np.load(os.path.join(features, 'clips', r.video_id + '.npz')))
+        if pose:   # append the 115-d pose / kick-beat feature to the video feature (see ours/pose_branch.py)
+            pz = np.load(os.path.join(features, 'pose', r.video_id + '.npz'))
+            d['rgb'] = np.concatenate([d['rgb'], pz['pose'], pz['has_pose'][:, None].astype(np.float32)], 1)
         starts, L = d['clip_start_frame'], int(d['clip_len'])
         g = seqs[seqs.video_id == r.video_id]
         out = {'video_id': r.video_id, 'year': int(r.year), 'round': r.round, 'y': int(r.winner_is_a),
