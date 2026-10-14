@@ -288,3 +288,18 @@ Linear probes (`tools/battle/linear_probe.py`, `tools/battle/probe_sources.py`):
 | crop + video, trained on 4–1/5–0 only, k=16 | 57.1% (50.0–64.7) | 60.7% | 54.5% |
 
 **Conclusion of rounds 1–5.** No model or probe gets a convincing winner signal from the available representations: on 170 battles everything lies in 53–58% with CIs from ~47% to ~64%. The best single BRACE number (60.9%) did not survive more data and is best read as a selection effect over ~15 tried settings. There is a weak, consistent hint that clear (unanimous) battles are predictable above chance (60–66% across sources, CI lower bounds ≈ 47–53%) while split decisions are not. The bottleneck is the input representation (frozen Kinetics/AudioSet/CLIP features pooled over clips carry little "quality" information), not the head, the regulariser or the amount of BRACE-style data.
+
+All-battle siamese run (`d0_extra08_all`, 3 seeds): 53.5% for every seed on 170 battles (BRACE 53.1–58.0%, extra 49.4–53.9%).
+
+### Round 6: estimated pose for all battles + judging-criteria features (2026-10-15)
+
+- **Pose** (`tools/battle/estimate_pose.py`): Keypoint R-CNN (COCO-17) every 3rd frame of the dancing clips of all 282 battle videos (BRACE + extra), up to 6 persons per frame. The dancer is among the detections in 93% of BRACE frames. Dancer selection: hand-made rule (tracking + size + centre + appearance box) picks the wrong person in 20.6% of frames; a learned selector (gradient boosting on candidate features + Viterbi tracking, trained on BRACE keypoints, never on winners) 12.0% (held-out years).
+- **Judging-criteria features** (`tools/battle/judge_features.py`), per dancer over their own turns, normalised by bbox height and per second: dancing time, joint speed (mean, p90), inverted share, floor share, spin speed (mean, p90), freezes (rate, time share, inverted share), jerk, kick-beat BAS, freeze-on-beat, pose-cluster entropy / clusters used, travel, extension.
+
+Winner vs loser, 170 battles (81 BRACE + 89 extra with consistent turns), paired sign test: no feature differs (all p ≥ 0.077; closest: freeze time, winner higher in 57.1% of battles, p = 0.077). Means are almost identical (inverted 0.166 vs 0.155, BAS 0.478 vs 0.479, pose entropy 2.771 vs 2.752, speed 4.13 vs 4.27).
+
+Leave-one-year-out antisymmetric logistic regression on the 17 differences: 46.5–50.6% on 170 battles; 47.9–53.6% on all 280 (no turn filter).
+
+**Human reference.** From the bracket vote counts of 259 battles: 5–0 113, 4–1 81, 3–2 64 (24.8% split decisions); a single judge agrees with the panel majority 83.8% of the time. That is the ceiling a model of "the judges' decision" could approach, and it shows the label itself is partly subjective.
+
+**Conclusion after rounds 1–6.** Across the siamese MLAVL (frozen Swin/AST/CLIP features, ~15 settings), linear probes of every feature source, and interpretable judging-criteria statistics from estimated pose, battle outcomes are not predictable above chance on 170–280 battles; winners and losers are statistically indistinguishable on motion, difficulty, musicality-alignment and variety measures. What decides breaking battles (originality, character, responding to the opponent, round-by-round context) is not captured by these signals.
