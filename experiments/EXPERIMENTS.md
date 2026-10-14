@@ -220,3 +220,18 @@ P(A wins) = σ(k·(s_A − s_B)), BCE + 0.1 × MLAVL aux losses, clip_num 64, 40
 - **Order-bias rerun (2026-10-14 00:40):** the learned first-dancer offset settles at b = 0.03–0.29 (≈ +1–7 points of probability for the first dancer), i.e. the model treats the first-dancer effect as small once it sees the performances; accuracy is unchanged (60.9% with 40 epochs, 56.4% with 10). With the scale now learnable, k grows to 16–18 in the 40-epoch runs and the log loss gets worse (1.17): the 40-epoch model is over-confident, which the fixed k = 10 had been hiding.
 - **Status after rounds 1–2:** best = RG-initialised siamese MLAVL, 60.9% ± 0.6–1.2 (seed-ensemble 61.7%, CI 50.6–72.8%), AUC 0.61. That is above chance but not distinguishable from the first-dancer rule (59.3%). Hyper-parameter changes move results only within 55–61%. The remaining levers are information the model does not have yet (pose / kick-beat, the reviewed breaking vocabulary) and more training pairs (round-level pairs: every battle has 2–4 rounds per dancer).
 
+
+### Round 3: vocabulary v1 and round-level pairs (2026-10-14, RG Ribbon init, 40 epochs, 3 seeds)
+
+Reference changed (정현도, 2026-10-14): the task is judging who danced better, so results are compared with chance (50%) and content-based rules, not with the dancing order (first-dancer win rate), which the order-invariant model cannot use anyway. `tools/battle/compare_runs.py` now reports p(acc ≤ 50%) and the paired difference to the energy rule.
+
+| run | vocab | unit | acc mean ± std | AUC | log loss | ensemble acc (95% CI) | p(acc≤50%) |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| initRG (round 1) | draft0 | battle | 60.9% ± 1.2 | 0.605 | 0.987 | 61.7% (50.6–72.8) | 0.015 |
+| v1_battle | v1 | battle | 57.2% ± 1.5 | 0.620 | 1.156 | 58.0% (46.9–69.1) | 0.071 |
+| d0_round | draft0 | round pairs | 46.5% ± 0.6 | 0.500 | 1.483 | 46.9% (35.8–58.0) | 0.711 |
+| v1_round | v1 | round pairs | 48.1% ± 1.7 | 0.492 | 1.500 | 43.2% (32.1–54.3) | 0.891 |
+
+- Round-level pairs (each round of A vs the same-index round of B, labelled with the battle winner) remove the signal: judges vote on the whole battle, single rounds do not carry it, and the extra (noisy) pairs make the model fit noise (train loss 0.08, test log loss 1.5). Dropped.
+- Vocabulary v1 vs draft0: −3.7 points accuracy, +0.015 AUC; indistinguishable with 81 battles. Both are kept as options; the decision needs more battles.
+- With 81 battles every comparison between settings is inside the noise. Next: more battles (203 extra World Final battles being downloaded and segmented automatically), and the pose / kick-beat branch on BRACE (running).
