@@ -262,3 +262,29 @@ Reference changed (정현도, 2026-10-14): the task is judging who danced better
   - Turn-start head + joint decoding of 4/6/8 alternating turns (DP, BRACE turn-count prior): dancer assignment 83.9% mean, 92.5% median; but some videos come out phase-flipped (whole battle A↔B). Confidence (weakest chosen turn start ≥ 0.4) keeps 70% of BRACE at 89%, and 66 of the 201 new battles.
 - **Cost of segmentation errors** (`--brace_auto_turns`, BRACE trained/tested with held-out-year automatic turns, RG init, draft0, 3 seeds): **47.3% ± 2.3** (ensemble 44.4%, CI 34.5–55.6) vs 60.9% with the human round annotation. Turn errors, especially phase flips that invert the winner label for a battle, wipe out the signal; adding the 203 battles with these turns would add more noise than signal.
 - **Appearance identity** (`tools/battle/appearance.py`): CLIP ViT-B/16 embedding of the dancer crop at each clip centre. With the BRACE annotated dancer boxes (oracle), 2-means per clip separates the dancers only 64.8% (median 60%); breaking poses (inverted, spinning, blurred) dominate the embedding. Single clips are not enough; next: use it at the turn level (mean of ~20 clips per turn) to verify/repair the alternating labelling and filter flipped videos.
+
+### Round 5: BRACE + 89/128 extra battles, and linear probes (2026-10-14)
+
+Turn-level appearance consistency (`segment_turns.py turn_consistency`): mean crop embedding of each turn vs the other A / B turns. On BRACE, consistency ≥ 0.8 keeps 49/81 videos, dancer assignment 91.7%, **no phase-flipped video** (12% without the filter). Applied to the extra battles: 89 kept (≥ 0.8), 128 (≥ 0.6).
+
+Siamese MLAVL, RG init, draft0, 40 epochs, 3 seeds:
+
+| train | test | acc mean ± std | ensemble acc (95% CI) | p(acc≤50%) |
+| --- | --- | --- | --- | --- |
+| BRACE 81 (round 1) | BRACE 81 | 60.9% ± 1.2 | 61.7% (50.6–72.8) | 0.015 |
+| BRACE + 89 extra | BRACE 81 | 56.4% ± 2.3 | 54.3% (43.2–65.4) | 0.217 |
+| BRACE + 128 extra | BRACE 81 | 54.7% ± 4.5 | 51.9% (40.7–63.0) | 0.370 |
+| BRACE + 89 extra | all 170 (seed 0) | 53.5% | (45.9–60.6) | |
+
+Linear probes (`tools/battle/linear_probe.py`, `tools/battle/probe_sources.py`): per-dancer mean/std of the features, antisymmetric logistic regression on f(A) − f(B), PCA in-fold, leave-one-year-out, 170 battles (81 BRACE + 89 extra):
+
+| source | all 170 | unanimous 5–0 (n=61) | split 3–2 (n=44) |
+| --- | --- | --- | --- |
+| Video Swin, k=32 | 55.3% (47.6–62.9) | 63.9% (50.8–75.4) | 59.1% |
+| AST audio, k=32 | 53.5% (45.9–61.2) | 44.3% | 54.5% |
+| Swin + AST, k=32 | 48.8–49.4% | | |
+| dancer-crop CLIP, k=8 | 55.3% (47.6–62.9) | 65.6% (52.5–77.0) | 38.6% |
+| BRACE pose (81 only), k=16 | 58.0% (46.9–69.1) | 52.2% (n=23) | 61.9% (n=21) |
+| crop + video, trained on 4–1/5–0 only, k=16 | 57.1% (50.0–64.7) | 60.7% | 54.5% |
+
+**Conclusion of rounds 1–5.** No model or probe gets a convincing winner signal from the available representations: on 170 battles everything lies in 53–58% with CIs from ~47% to ~64%. The best single BRACE number (60.9%) did not survive more data and is best read as a selection effect over ~15 tried settings. There is a weak, consistent hint that clear (unanimous) battles are predictable above chance (60–66% across sources, CI lower bounds ≈ 47–53%) while split decisions are not. The bottleneck is the input representation (frozen Kinetics/AudioSet/CLIP features pooled over clips carry little "quality" information), not the head, the regulariser or the amount of BRACE-style data.
