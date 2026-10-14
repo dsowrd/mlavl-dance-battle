@@ -240,8 +240,11 @@ def apply(a):
         with torch.no_grad():
             p = torch.sigmoid(m(torch.from_numpy(X)[None].to(device))[0]).cpu().numpy()
         lab, on, sc = decode_turns(p[:, 0], p[:, 1])
-        np.savez(os.path.join(a.features, 'turns', vid + '.npz'), dancer=lab, p_dancing=p[:, 0], p_start=p[:, 1], score=sc)
-        print(f'{vid}: T={len(lab)} dancing {on.mean():.2f} turns {n_turns(lab)}', flush=True)
+        cut_p = [p[t, 1] for t in np.where(np.diff(lab.astype(int)) != 0)[0] + 1 if lab[t] > 0]
+        min_cut_p = float(min(cut_p) if cut_p else 0.0)       # confidence: weakest chosen turn start
+        np.savez(os.path.join(a.features, 'turns', vid + '.npz'), dancer=lab, p_dancing=p[:, 0], p_start=p[:, 1],
+                 score=sc, min_cut_p=min_cut_p)
+        print(f'{vid}: T={len(lab)} dancing {on.mean():.2f} turns {n_turns(lab)} min_cut_p {min_cut_p:.2f}', flush=True)
 
 
 if __name__ == '__main__':

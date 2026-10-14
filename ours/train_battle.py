@@ -34,7 +34,8 @@ import options  # noqa: E402
 from models import loss as mlavl_loss  # noqa: E402
 from models.model import MLAVL  # noqa: E402
 from ours.pose_branch import add_pose_branch  # noqa: E402
-from ours.battle_dataset import BattleDataset, RoundPairDataset, load_battles, round_pairs, windows  # noqa: E402
+from ours.battle_dataset import (BattleDataset, RoundPairDataset, load_battles, load_extra_battles,  # noqa: E402
+                                 round_pairs, windows)
 
 
 def build_model(a, device):
@@ -72,7 +73,9 @@ def run_fold(a, items, test_year, device, seed):
     torch.manual_seed(seed)
     np.random.seed(seed)
     train = [it for it in items if it['year'] != test_year]
-    test = [it for it in items if it['year'] == test_year]
+    test = [it for it in items if it['year'] == test_year and (a.test_on == 'all' or it.get('source') != 'extra')]
+    if not test:
+        return [], float('nan'), float('nan'), 0.0, 0, []
     model = build_model(a, device)
     log_k = torch.nn.Parameter(torch.tensor(float(np.log(a.init_scale)), device=device))
     bias = torch.nn.Parameter(torch.zeros((), device=device), requires_grad=a.order_bias)
@@ -119,6 +122,7 @@ def run_fold(a, items, test_year, device, seed):
             sb = score(model, it['rgb_b'], it['audio_b'], a.clip_num, device)
         p = 1 / (1 + np.exp(-(k * (sa - sb) + bias.item())))           # A always danced first at test
         rows.append({'video_id': it['video_id'], 'year': it['year'], 'round': it['round'], 'y': it['y'],
+                     'source': it.get('source', 'brace'),
                      'score_a': sa, 'score_b': sb, 'p_a': p, 'correct': int((p > 0.5) == bool(it['y']))})
     train_loss = tot / len(dl.dataset)
     gate = [p.item() for n_, p in model.named_parameters() if n_.endswith('.gate')]
@@ -134,11 +138,19 @@ def auc(y, p):
 def main(a):
     device = torch.device('cuda')
     items = load_battles(a.features, a.brace, a.labels, pose=a.pose)
+    if a.extra:
+        assert not a.pose, 'extra battles have no BRACE keypoints, so --pose cannot be combined with --extra'
+        extra, skipped = load_extra_battles(a.extra_features, a.extra_csv, a.extra_min_cut_p)
+        print(f'extra battles: {len(extra)} used, {skipped} skipped (missing features / low-confidence turns)')
+        items += extra
     out_dir = os.path.join('logs/battle', a.name)
     os.makedirs(out_dir, exist_ok=True)
     rows, t0 = [], time.time()
     for year in sorted({it['year'] for it in items}):
         r, tl, k, b, npar, gate = run_fold(a, items, year, device, a.seed)
+        if not r:
+            print(f'fold {year}: no test battles (train-only year)', flush=True)
+            continue
         acc = np.mean([x['correct'] for x in r])
         print(f'fold {year}: n={len(r)} acc={acc:.3f} final train loss {tl:.4f} k={k:.1f} bias={b:.2f} '
               f'trainable={npar / 1e6:.2f}M' + (f' pose_gate={gate[0]:.3f}' if gate else '') + f' ({time.time() - t0:.0f}s)', flush=True)
@@ -151,7 +163,8 @@ def main(a):
     summ = {'name': a.name, 'n': len(df), 'accuracy': float(c.mean()), 'ci95': [float(np.percentile(boots, 2.5)),
             float(np.percentile(boots, 97.5))], 'auc': auc(df.y, df.p_a),
             'log_loss': float(-np.mean(df.y * np.log(df.p_a + 1e-7) + (1 - df.y) * np.log(1 - df.p_a + 1e-7))),
-            'per_year': df.groupby('year').correct.mean().round(3).to_dict(), 'args': vars(a)}
+            'per_year': df.groupby('year').correct.mean().round(3).to_dict(),
+            'per_source': df.groupby('source').correct.agg(['mean', 'size']).round(3).to_dict('index'), 'args': vars(a)}
     json.dump(summ, open(os.path.join(out_dir, 'summary.json'), 'w'), indent=1, default=str)
     print(f"ALL: acc {summ['accuracy']:.3f} (95% CI {summ['ci95'][0]:.3f}-{summ['ci95'][1]:.3f}), AUC {summ['auc']:.3f}, "
           f"log loss {summ['log_loss']:.3f}")
@@ -177,6 +190,12 @@ if __name__ == '__main__':
     p.add_argument('--aux', type=float, default=0.1, help='weight of the MLAVL auxiliary loss relative to BCE')
     p.add_argument('--init_scale', type=float, default=10.0)
     p.add_argument('--seed', type=int, default=0)
+    p.add_argument('--extra', action='store_true', help='also train on the extra (non-BRACE) battles')
+    p.add_argument('--extra_features', default='/data/mlavl/features/BCONE_EXTRA')
+    p.add_argument('--extra_csv', default='ours/battle/extra_battles.csv')
+    p.add_argument('--extra_min_cut_p', type=float, default=0.4)
+    p.add_argument('--test_on', choices=['brace', 'all'], default='brace',
+                   help='evaluate on BRACE battles only (human round annotation) or also on the extra battles')
     p.add_argument('--pose', action='store_true', help='add the pose / kick-beat branch (ours/pose_branch.py)')
     p.add_argument('--unit', choices=['battle', 'round'], default='battle',
                    help="training examples: whole battles, or round pairs labelled with the battle winner")

@@ -85,6 +85,55 @@ class BattleDataset(Dataset):
         return f(va), f(aa), f(vb), f(ab), torch.tensor(float(y)), torch.tensor(first)
 
 
+def turns_to_rounds(dancer, rgb, audio, side):
+    """Rounds of one dancer from an automatic turn labelling (tools/battle/segment_turns.py: 0 none, 1 A, 2 B).
+    Consecutive runs with the same label are one turn (turns alternate, so a pause inside a turn splits a run)."""
+    want = 1 if side == 'a' else 2
+    rounds, cur = [], []
+    last = 0
+    for t, v in enumerate(dancer):
+        if v == 0:
+            continue
+        if v != last and cur:
+            if last == want:
+                rounds.append(np.array(cur))
+            cur = []
+        cur.append(t)
+        last = v
+    if cur and last == want:
+        rounds.append(np.array(cur))
+    return [(rgb[r], audio[r]) for r in rounds]
+
+
+def load_extra_battles(features, csv, min_cut_p=0.4, years=None):
+    """Battles outside BRACE (ours/battle/extra_battles.csv) with automatic turns; only videos whose weakest turn
+    start has p >= min_cut_p (on BRACE these have 89% clip-level dancer accuracy) and both dancers >= 2 rounds."""
+    e = pd.read_csv(csv)
+    e = e[e.in_brace == 0]
+    items, skipped = [], 0
+    for r in e.itertuples():
+        cf, tf = (os.path.join(features, k, r.video_id + '.npz') for k in ('clips', 'turns'))
+        if not (os.path.exists(cf) and os.path.exists(tf)) or (years is not None and r.year not in years):
+            skipped += 1
+            continue
+        d, t = np.load(cf), np.load(tf)
+        if float(t['min_cut_p']) < min_cut_p:
+            skipped += 1
+            continue
+        it = {'video_id': r.video_id, 'year': int(r.year), 'round': r.round, 'y': int(r.winner_is_a),
+              'dancer_a': r.dancer_a, 'dancer_b': r.dancer_b, 'source': 'extra'}
+        for side in 'ab':
+            it['rounds_' + side] = turns_to_rounds(t['dancer'], d['rgb'], d['audio'], side)
+            if it['rounds_' + side]:
+                it['rgb_' + side] = np.concatenate([x[0] for x in it['rounds_' + side]])
+                it['audio_' + side] = np.concatenate([x[1] for x in it['rounds_' + side]])
+        if len(it['rounds_a']) < 2 or len(it['rounds_b']) < 2:
+            skipped += 1
+            continue
+        items.append(it)
+    return items, skipped
+
+
 def round_pairs(item):
     """The i-th round of A paired with the i-th round of B (battles alternate A, B, A, B, ...)."""
     n = min(len(item['rounds_a']), len(item['rounds_b']))
