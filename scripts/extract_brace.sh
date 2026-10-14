@@ -11,4 +11,4 @@ mkdir -p logs/stdout
 LOG=logs/stdout/extract_brace_$(date +%m%d_%H%M).log
 echo "[$(date)] commit $(git rev-parse --short HEAD) gpu $GPU" | tee -a "$LOG"
 CUDA_VISIBLE_DEVICES=$GPU /usr/bin/time -v "$MLAVL_PY" -I tools/battle/extract_features.py \
-  --videos "$MLAVL_DATA/videos/brace" --out "$MLAVL_DATA/features/BRACE" "$@" 2>&1 | grep --line-buffered -v -i 'warn\|waveform = ' | tee -a "$LOG"
+  --videos "${VIDEOS:-$MLAVL_DATA/videos/brace}" --out "${FEATS:-$MLAVL_DATA/features/BRACE}" "$@" 2>&1 | grep --line-buffered -v -i 'warn\|waveform = ' | tee -a "$LOG"

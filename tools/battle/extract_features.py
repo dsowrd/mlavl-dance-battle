@@ -119,7 +119,8 @@ def audio_features(fe, am, wav, starts, clip_len, fps, device, sr=16000, batch=3
 def main(a):
     device = torch.device('cuda')
     os.makedirs(os.path.join(a.out, 'clips'), exist_ok=True)
-    ids = a.ids or sorted(f[:-4] for f in os.listdir(a.videos) if f.endswith('.mp4'))
+    # finished downloads only: yt-dlp's intermediate files are '<id>.f137.mp4' / '<id>.temp.mp4' (ids have no '.')
+    ids = a.ids or sorted(f[:-4] for f in os.listdir(a.videos) if f.endswith('.mp4') and '.' not in f[:-4])
     vm, fe, am = build_models(device)
     for k, vid in enumerate(ids):
         dst = os.path.join(a.out, 'clips', vid + '.npz')
