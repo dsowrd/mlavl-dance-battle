@@ -231,6 +231,109 @@ def evaluate(a):
           '| videos with dancer_acc >= 0.9:', (df.dancer_acc >= 0.9).mean().round(3))
 
 
+def appearance_labels(emb, has, on, min_run=4, w=2):
+    """Dancer labels from crop appearance: 2-means on the dancing clips that have a dancer crop, nearest-labelled
+    propagation to dancing clips without one, sliding-majority + short-run merging; A = the cluster dancing first."""
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from appearance import two_means
+    lab = np.zeros(len(on), np.int8)
+    idx = np.where(on & (has > 0))[0]
+    if len(idx) < 4:
+        return lab
+    c = two_means(emb[idx].astype(np.float32))
+    full = np.full(len(on), -1)
+    full[idx] = c
+    d_idx = np.where(on)[0]
+    seq = np.array([full[t] if full[t] >= 0 else full[idx[np.argmin(np.abs(idx - t))]] for t in d_idx])
+    seq = np.array([np.bincount(seq[max(0, i - w):i + w + 1], minlength=2).argmax() for i in range(len(seq))])
+    changed = True
+    while changed:
+        changed = False
+        rs = list(_runs_labels(seq))
+        for k, (i, j, v) in enumerate(rs):
+            if j - i < min_run and len(rs) > 1:
+                seq[i:j] = rs[k - 1][2] if k > 0 else rs[k + 1][2]
+                changed = True
+                break
+    lab[d_idx] = np.where(seq == seq[0], 1, 2)
+    return lab
+
+
+def eval_appearance(a):
+    """BRACE: dancing mask from the held-out-year detector (turns_loyo) + dancer identity from detected crops."""
+    data = brace_truth(a.features, a.brace)
+    rows = []
+    for vid, (X, y, truth, year) in data.items():
+        t = np.load(os.path.join(a.features, 'turns_loyo', vid + '.npz'))
+        ap = np.load(os.path.join(a.features, 'appearance', vid + '.npz'))
+        on = smooth_binary(t['p_dancing'])
+        lab = appearance_labels(ap['emb'], ap['has'], on)
+        m = truth > 0
+        rows.append({'video_id': vid, 'year': year, 'dancer_acc_alternation': float((t['dancer'][m] == truth[m]).mean()),
+                     'dancer_acc_appearance': float((lab[m] == truth[m]).mean()),
+                     'turns_true': n_turns(truth), 'runs_appearance': len([1 for i, j, v in _runs_labels(lab[lab > 0])])})
+    df = pd.DataFrame(rows)
+    df.to_csv(os.path.join(a.features, 'appearance_turns_eval.csv'), index=False)
+    print(df[['dancer_acc_alternation', 'dancer_acc_appearance']].describe().round(3).to_string())
+    for c in ['dancer_acc_alternation', 'dancer_acc_appearance']:
+        print(c, '>=0.9:', (df[c] >= 0.9).mean().round(3), '| <0.6:', (df[c] < 0.6).mean().round(3))
+
+
+def turn_consistency(lab, emb, has):
+    """Appearance check of an alternating turn labelling. Each turn's mean crop embedding is compared with the mean of
+    the other A turns and the other B turns (leave-one-out); a turn 'agrees' if it is closer to its own side.
+    Returns (share of turns that agree, number of turns). Single clips are weak (65% identity accuracy with oracle
+    boxes on BRACE), but a turn averages ~20 clips."""
+    turns, cur, last = [], [], 0
+    for t, v in enumerate(lab):
+        if v == 0:
+            continue
+        if v != last and cur:
+            turns.append((last, np.array(cur)))
+            cur = []
+        cur.append(t)
+        last = v
+    if cur:
+        turns.append((last, np.array(cur)))
+    means = []
+    for side, idx in turns:
+        k = idx[has[idx] > 0]
+        means.append((side, emb[k].astype(np.float32).mean(0) if len(k) else None))
+    agree, n = 0, 0
+    for i, (side, m) in enumerate(means):
+        if m is None:
+            continue
+        own = [x for j, (s_, x) in enumerate(means) if j != i and s_ == side and x is not None]
+        other = [x for j, (s_, x) in enumerate(means) if j != i and s_ != side and x is not None]
+        if not own or not other:
+            continue
+        cos = lambda u, v: float(u @ v / (np.linalg.norm(u) * np.linalg.norm(v) + 1e-8))
+        agree += cos(m, np.mean(own, 0)) > cos(m, np.mean(other, 0))
+        n += 1
+    return (agree / n if n else 0.0), n
+
+
+def eval_consistency(a):
+    """BRACE: does appearance consistency of the held-out-year turns predict correct dancer assignment?"""
+    data = brace_truth(a.features, a.brace)
+    rows = []
+    for vid, (X, y, truth, year) in data.items():
+        t = np.load(os.path.join(a.features, 'turns_loyo', vid + '.npz'))
+        ap = np.load(os.path.join(a.features, 'appearance', vid + '.npz'))
+        cons, n = turn_consistency(t['dancer'], ap['emb'], ap['has'])
+        m = truth > 0
+        rows.append({'video_id': vid, 'year': year, 'dancer_acc': float((t['dancer'][m] == truth[m]).mean()),
+                     'consistency': cons, 'n_turns': n, 'min_cut_p': float(t['min_cut_p'])})
+    df = pd.DataFrame(rows)
+    df.to_csv(os.path.join(a.features, 'turn_consistency_eval.csv'), index=False)
+    print('corr(consistency, dancer_acc) = %.3f' % df[['consistency', 'dancer_acc']].corr().iloc[0, 1])
+    for c in [0.0, 0.6, 0.8, 1.0]:
+        for q in [0.0, 0.3]:
+            k = df[(df.consistency >= c) & (df.min_cut_p >= q)]
+            print(f'consistency >= {c:.1f}, min_cut_p >= {q:.1f}: keep {len(k)}/81, dancer acc mean {k.dancer_acc.mean():.3f}, '
+                  f'>=0.9 {(k.dancer_acc >= 0.9).mean():.2f}, <0.6 {(k.dancer_acc < 0.6).mean():.2f}')
+
+
 def apply(a):
     device = torch.device('cuda')
     data = brace_truth(a.brace_features, a.brace)
@@ -253,10 +356,11 @@ def apply(a):
 
 if __name__ == '__main__':
     p = argparse.ArgumentParser()
-    p.add_argument('mode', choices=['eval', 'apply'])
+    p.add_argument('mode', choices=['eval', 'apply', 'eval_appearance', 'eval_consistency'])
     p.add_argument('--features', default='/data/mlavl/features/BRACE')
     p.add_argument('--brace_features', default='/data/mlavl/features/BRACE')
     p.add_argument('--brace', default='/data/mlavl/datasets/brace')
     p.add_argument('--ids', nargs='*')
     a = p.parse_args()
-    evaluate(a) if a.mode == 'eval' else apply(a)
+    {'eval': evaluate, 'apply': apply, 'eval_appearance': eval_appearance,
+     'eval_consistency': eval_consistency}[a.mode](a)

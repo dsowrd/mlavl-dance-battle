@@ -249,3 +249,16 @@ Reference changed (정현도, 2026-10-14): the task is judging who danced better
 
 - No gain. The learned pose gate ends between −0.21 and +0.19 with a sign that changes across folds and seeds: the model does not find a consistent use for pose with ~70 training battles. Kick-beat alignment alone does not separate winners either (winner 0.468 vs loser 0.472; "higher BAS wins" 44%).
 - Pose stays BRACE-only (the extra battles have no keypoints); it is revisited only if the larger dataset shows headroom.
+
+### Data extension: 203 more World Final battles (2026-10-14)
+
+정현도: "합당한 결과가 나올때까지 계속 진행해. 데이터를 더 모으고, 라벨링은 알아서 해줘".
+
+- **Videos and labels** (`tools/battle/collect_extra_battles.py`, `ours/battle/extra_battles.csv`): official Red Bull BC One channel (2,107 videos) matched to the Wikipedia brackets 2004–2025 → 284 battles, 81 = BRACE, **203 new** (201 downloaded at 720p, 13 GB; 2 permanently 403). Winner from the bracket (agrees with BRACE labels on 81/81). Dancing order: first name in the YouTube title (= BRACE first dancer on 81/81); the Wikipedia `<sup>1</sup>` order marks agree on only 41/81 and are not used. First dancer won 61.6% of the new battles.
+- **Features**: Video Swin + AST for all 201 (`/data/mlavl/features/BCONE_EXTRA`).
+- **Who dances when** (no annotation outside BRACE), `tools/battle/segment_turns.py`, leave-one-year-out on BRACE:
+  - BiGRU dancing detector: 92.0% clip accuracy.
+  - 2-means on whole-frame Swin features to split the two dancers: 50% (chance) – frames are mostly crowd/stage.
+  - Turn-start head + joint decoding of 4/6/8 alternating turns (DP, BRACE turn-count prior): dancer assignment 83.9% mean, 92.5% median; but some videos come out phase-flipped (whole battle A↔B). Confidence (weakest chosen turn start ≥ 0.4) keeps 70% of BRACE at 89%, and 66 of the 201 new battles.
+- **Cost of segmentation errors** (`--brace_auto_turns`, BRACE trained/tested with held-out-year automatic turns, RG init, draft0, 3 seeds): **47.3% ± 2.3** (ensemble 44.4%, CI 34.5–55.6) vs 60.9% with the human round annotation. Turn errors, especially phase flips that invert the winner label for a battle, wipe out the signal; adding the 203 battles with these turns would add more noise than signal.
+- **Appearance identity** (`tools/battle/appearance.py`): CLIP ViT-B/16 embedding of the dancer crop at each clip centre. With the BRACE annotated dancer boxes (oracle), 2-means per clip separates the dancers only 64.8% (median 60%); breaking poses (inverted, spinning, blurred) dominate the embedding. Single clips are not enough; next: use it at the turn level (mean of ~20 clips per turn) to verify/repair the alternating labelling and filter flipped videos.
