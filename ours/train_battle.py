@@ -142,11 +142,11 @@ def main(a):
         for it in items:
             it['source'] = 'brace'
     else:
-        items = load_battles(a.features, a.brace, a.labels, pose=a.pose)
+        items = load_battles(a.features, a.brace, a.labels, pose=a.pose, clips=a.clips)
     if a.extra:
         assert not a.pose, 'extra battles have no BRACE keypoints, so --pose cannot be combined with --extra'
         extra, skipped = load_extra_battles(a.extra_features, a.extra_csv, a.extra_min_cut_p,
-                                            min_consistency=a.extra_min_consistency)
+                                            min_consistency=a.extra_min_consistency, clips=a.clips)
         print(f'extra battles: {len(extra)} used, {skipped} skipped (missing features / low-confidence turns)')
         items += extra
     out_dir = os.path.join('logs/battle', a.name)
@@ -196,6 +196,7 @@ if __name__ == '__main__':
     p.add_argument('--aux', type=float, default=0.1, help='weight of the MLAVL auxiliary loss relative to BCE')
     p.add_argument('--init_scale', type=float, default=10.0)
     p.add_argument('--seed', type=int, default=0)
+    p.add_argument('--clips', default='clips', help="clip feature subdir: 'clips' (whole frame) or 'clips_crop' (dancer-centred)")
     p.add_argument('--brace_auto_turns', action='store_true',
                    help='use held-out-year automatic turns for BRACE instead of the human annotation')
     p.add_argument('--extra', action='store_true', help='also train on the extra (non-BRACE) battles')

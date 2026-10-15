@@ -13,12 +13,12 @@ import torch
 from torch.utils.data import Dataset
 
 
-def load_battles(features, brace, labels, pose=False):
+def load_battles(features, brace, labels, pose=False, clips='clips'):
     seqs = pd.read_csv(os.path.join(brace, 'repo/annotations/sequences.csv'))
     win = pd.read_csv(os.path.join(labels, 'winners.csv'))
     items = []
     for r in win.itertuples():
-        d = dict(np.load(os.path.join(features, 'clips', r.video_id + '.npz')))
+        d = dict(np.load(os.path.join(features, clips, r.video_id + '.npz')))
         if pose:   # append the 115-d pose / kick-beat feature to the video feature (see ours/pose_branch.py)
             pz = np.load(os.path.join(features, 'pose', r.video_id + '.npz'))
             d['rgb'] = np.concatenate([d['rgb'], pz['pose'], pz['has_pose'][:, None].astype(np.float32)], 1)
@@ -125,7 +125,7 @@ def load_brace_auto(features, labels, turns_dir='turns_loyo', min_cut_p=0.0):
     return items
 
 
-def load_extra_battles(features, csv, min_cut_p=0.0, years=None, min_consistency=0.8):
+def load_extra_battles(features, csv, min_cut_p=0.0, years=None, min_consistency=0.8, clips='clips'):
     """Battles outside BRACE (ours/battle/extra_battles.csv) with automatic turns, kept only if (a) the weakest turn
     start has p >= min_cut_p and (b) the turn-level appearance consistency (tools/battle/segment_turns.py
     turn_consistency, dancer crops) is >= min_consistency, and both dancers have >= 2 rounds. On BRACE, consistency
@@ -137,7 +137,7 @@ def load_extra_battles(features, csv, min_cut_p=0.0, years=None, min_consistency
     e = e[e.in_brace == 0]
     items, skipped = [], 0
     for r in e.itertuples():
-        cf, tf = (os.path.join(features, k, r.video_id + '.npz') for k in ('clips', 'turns'))
+        cf, tf = (os.path.join(features, k, r.video_id + '.npz') for k in (clips, 'turns'))
         if not (os.path.exists(cf) and os.path.exists(tf)) or (years is not None and r.year not in years):
             skipped += 1
             continue
