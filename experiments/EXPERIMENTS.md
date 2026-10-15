@@ -312,3 +312,15 @@ Leave-one-year-out antisymmetric logistic regression on the 17 differences: 46.5
 - Linear probe on 170 battles: 46.5–52.4% (whole frame 50.6–55.3%); unanimous 50.8–59.0%.
 - Siamese MLAVL (RG init, draft0, BRACE + 89 extra, test on all 170, 3 seeds in parallel): 52.9 / 54.1 / 55.3%, ensemble 52.4% (44.7–60.0); whole frame 53.5 ×3, ensemble 54.7% (47.1–61.8).
 - No gain: giving Kinetics-pretrained Video Swin a close-up of the dancer does not make it encode performance quality.
+
+### Round 8: label noise (2026-10-15/16; whole-frame features, RG init, draft0, BRACE + 89 extra, test on all 170, 3 seeds)
+
+| run | seeds | AUC | ensemble acc (95% CI) | unanimous 5–0 (n=61) | 4–1 (n=50) | split 3–2 (n=44) |
+| --- | --- | --- | --- | --- | --- | --- |
+| hard labels (d0_extra08_all) | 53.5 / 53.5 / 53.5% | 0.563 | 54.7% (47.1–61.8) | | | |
+| `--soft_labels` (target = A's vote share) | 54.1 / 53.5 / 55.3% | 0.573 | 54.7% (47.1–61.8) | 57.4% | 62.0% | 43.2% |
+| `--train_min_votes 4` (train on 5–0 / 4–1 only) | 54.1 / 56.5 / 53.5% | 0.549 | 54.7% (47.1–62.4) | 55.7% | 54.0% | 50.0% |
+
+No gain overall. The pattern seen in the probes repeats: clear decisions 55–62%, split decisions at or below chance.
+
+**Summary of the improvement attempts (rounds 7–8).** (1) Outcomes are predictable from dancer strength (Elo 60%, past wins 66%), (2) a dancer close-up does not make Kinetics features encode it, (3) cleaner / softer labels do not help. Remaining lever: expert round-level labels (정현도) and/or a representation trained for dance quality.
