@@ -303,3 +303,12 @@ Leave-one-year-out antisymmetric logistic regression on the 17 differences: 46.5
 **Human reference.** From the bracket vote counts of 259 battles: 5–0 113, 4–1 81, 3–2 64 (24.8% split decisions); a single judge agrees with the panel majority 83.8% of the time. That is the ceiling a model of "the judges' decision" could approach, and it shows the label itself is partly subjective.
 
 **Conclusion after rounds 1–6.** Across the siamese MLAVL (frozen Swin/AST/CLIP features, ~15 settings), linear probes of every feature source, and interpretable judging-criteria statistics from estimated pose, battle outcomes are not predictable above chance on 170–280 battles; winners and losers are statistically indistinguishable on motion, difficulty, musicality-alignment and variety measures. What decides breaking battles (originality, character, responding to the opponent, round-by-round context) is not captured by these signals.
+
+### Round 7: diagnosis and dancer-centred features (2026-10-15)
+
+**Is a battle outcome predictable at all? Dancer-history Elo** (`tools/battle/elo_baseline.py`; only who the dancers are and their earlier World Final results, never the video): 60.4% (55.3–65.6) on 331 bracket matches 2004–2025; "more previous World Final wins wins" 66.5% (n = 173); on our 170 video battles with both dancers seen before 57.1% (49.4–64.7). Outcomes carry a dancer-strength signal of roughly 60–66%; the video models (53–57%) do not reach it, so the gap is in the representation.
+
+**Dancer-centred Video Swin** (`tools/battle/extract_crop_features.py`): each 32-frame clip cropped to a square of 1.4 × the clip's median dancer box (learned selector on estimated pose), 224 px, same Swin-B. Cosine to the whole-frame feature 0.875.
+- Linear probe on 170 battles: 46.5–52.4% (whole frame 50.6–55.3%); unanimous 50.8–59.0%.
+- Siamese MLAVL (RG init, draft0, BRACE + 89 extra, test on all 170, 3 seeds in parallel): 52.9 / 54.1 / 55.3%, ensemble 52.4% (44.7–60.0); whole frame 53.5 ×3, ensemble 54.7% (47.1–61.8).
+- No gain: giving Kinetics-pretrained Video Swin a close-up of the dancer does not make it encode performance quality.
