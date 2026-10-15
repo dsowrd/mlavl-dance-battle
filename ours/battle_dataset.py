@@ -26,6 +26,7 @@ def load_battles(features, brace, labels, pose=False, clips='clips'):
         g = seqs[seqs.video_id == r.video_id]
         out = {'video_id': r.video_id, 'year': int(r.year), 'round': r.round, 'y': int(r.winner_is_a),
                'dancer_a': r.dancer_a, 'dancer_b': r.dancer_b}
+        out['votes'], out['y_soft'] = vote_info(r.bracket_score_a, r.bracket_score_b, r.winner_is_a)
         for side, name in (('a', r.dancer_a), ('b', r.dancer_b)):
             rounds = g[g.dancer == name].sort_values('start_frame')[['start_frame', 'end_frame']].values
             keep = np.zeros(len(starts), bool)
@@ -39,6 +40,16 @@ def load_battles(features, brace, labels, pose=False, clips='clips'):
             out['audio_' + side] = d['audio'][keep]
         items.append(out)
     return items
+
+
+def vote_info(score_a, score_b, y):
+    """(winner's votes, soft label = A's vote share) from the bracket score; round-by-round scores (2014, '4/5') and
+    missing scores -> (-1, hard label)."""
+    a, b = str(score_a), str(score_b)
+    if a.isdigit() and b.isdigit() and int(a) + int(b) > 0:
+        a, b = int(a), int(b)
+        return max(a, b), a / (a + b)
+    return -1, float(y)
 
 
 def crop_or_pad(v, a, n, rng=None):
@@ -67,8 +78,8 @@ class BattleDataset(Dataset):
     """Training view: random crop of each dancer to clip_num and, with probability `swap`, A/B swapped (label
     flipped), so the model cannot learn the first-dancer prior and has to compare the performances."""
 
-    def __init__(self, items, clip_num=64, swap=0.5, seed=0):
-        self.items, self.n, self.swap = items, clip_num, swap
+    def __init__(self, items, clip_num=64, swap=0.5, seed=0, soft=False):
+        self.items, self.n, self.swap, self.soft = items, clip_num, swap, soft
         self.rng = np.random.default_rng(seed)
 
     def __len__(self):
@@ -78,7 +89,7 @@ class BattleDataset(Dataset):
         it = self.items[i]
         va, aa = crop_or_pad(it['rgb_a'], it['audio_a'], self.n, self.rng)
         vb, ab = crop_or_pad(it['rgb_b'], it['audio_b'], self.n, self.rng)
-        y, first = it['y'], 1.0              # first = 1 if the left-hand dancer danced first
+        y, first = (it.get('y_soft', it['y']) if self.soft else it['y']), 1.0   # first = 1: left dancer danced first
         if self.rng.random() < self.swap:
             va, aa, vb, ab, y, first = vb, ab, va, aa, 1 - y, -1.0
         f = lambda x: torch.from_numpy(np.ascontiguousarray(x)).float()
@@ -156,6 +167,7 @@ def load_extra_battles(features, csv, min_cut_p=0.0, years=None, min_consistency
                 continue
         it = {'video_id': r.video_id, 'year': int(r.year), 'round': r.round, 'y': int(r.winner_is_a),
               'dancer_a': r.dancer_a, 'dancer_b': r.dancer_b, 'source': 'extra'}
+        it['votes'], it['y_soft'] = vote_info(r.bracket_score_a, r.bracket_score_b, r.winner_is_a)
         for side in 'ab':
             it['rounds_' + side] = turns_to_rounds(t['dancer'], d['rgb'], d['audio'], side)
             if it['rounds_' + side]:
@@ -179,8 +191,8 @@ class RoundPairDataset(BattleDataset):
     with the battle winner (a noisy label for a single round: judges vote on the whole battle). Gives ~2.9 pairs per
     battle instead of 1."""
 
-    def __init__(self, items, clip_num=32, swap=0.5, seed=0):
-        super().__init__(items, clip_num, swap, seed)
+    def __init__(self, items, clip_num=32, swap=0.5, seed=0, soft=False):
+        super().__init__(items, clip_num, swap, seed, soft)
         self.pairs = [(it, ra, rb) for it in items for ra, rb in round_pairs(it)]
 
     def __len__(self):

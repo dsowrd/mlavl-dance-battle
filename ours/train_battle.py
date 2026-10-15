@@ -72,7 +72,7 @@ def score(model, v, a, n, device):
 def run_fold(a, items, test_year, device, seed):
     torch.manual_seed(seed)
     np.random.seed(seed)
-    train = [it for it in items if it['year'] != test_year]
+    train = [it for it in items if it['year'] != test_year and it.get('votes', -1) >= a.train_min_votes]
     test = [it for it in items if it['year'] == test_year and (a.test_on == 'all' or it.get('source') != 'extra')]
     if not test:
         return [], float('nan'), float('nan'), 0.0, 0, []
@@ -92,7 +92,7 @@ def run_fold(a, items, test_year, device, seed):
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, a.epochs, eta_min=a.lr * 0.01)
     lf = mlavl_loss.LossFun(a.alpha, 1.0, alpha_ce=a.alpha_ce)
     DS = RoundPairDataset if a.unit == 'round' else BattleDataset
-    dl = DataLoader(DS(train, a.clip_num, swap=0.5, seed=seed), batch_size=a.batch, shuffle=True,
+    dl = DataLoader(DS(train, a.clip_num, swap=0.5, seed=seed, soft=a.soft_labels), batch_size=a.batch, shuffle=True,
                     num_workers=0, drop_last=False)
     for ep in range(a.epochs):
         model.train()
@@ -122,7 +122,7 @@ def run_fold(a, items, test_year, device, seed):
             sb = score(model, it['rgb_b'], it['audio_b'], a.clip_num, device)
         p = 1 / (1 + np.exp(-(k * (sa - sb) + bias.item())))           # A always danced first at test
         rows.append({'video_id': it['video_id'], 'year': it['year'], 'round': it['round'], 'y': it['y'],
-                     'source': it.get('source', 'brace'),
+                     'source': it.get('source', 'brace'), 'votes': it.get('votes', -1),
                      'score_a': sa, 'score_b': sb, 'p_a': p, 'correct': int((p > 0.5) == bool(it['y']))})
     train_loss = tot / len(dl.dataset)
     gate = [p.item() for n_, p in model.named_parameters() if n_.endswith('.gate')]
@@ -170,7 +170,8 @@ def main(a):
             float(np.percentile(boots, 97.5))], 'auc': auc(df.y, df.p_a),
             'log_loss': float(-np.mean(df.y * np.log(df.p_a + 1e-7) + (1 - df.y) * np.log(1 - df.p_a + 1e-7))),
             'per_year': df.groupby('year').correct.mean().round(3).to_dict(),
-            'per_source': df.groupby('source').correct.agg(['mean', 'size']).round(3).to_dict('index'), 'args': vars(a)}
+            'per_source': df.groupby('source').correct.agg(['mean', 'size']).round(3).to_dict('index'),
+            'per_votes': df.groupby('votes').correct.agg(['mean', 'size']).round(3).to_dict('index'), 'args': vars(a)}
     json.dump(summ, open(os.path.join(out_dir, 'summary.json'), 'w'), indent=1, default=str)
     print(f"ALL: acc {summ['accuracy']:.3f} (95% CI {summ['ci95'][0]:.3f}-{summ['ci95'][1]:.3f}), AUC {summ['auc']:.3f}, "
           f"log loss {summ['log_loss']:.3f}")
@@ -196,6 +197,9 @@ if __name__ == '__main__':
     p.add_argument('--aux', type=float, default=0.1, help='weight of the MLAVL auxiliary loss relative to BCE')
     p.add_argument('--init_scale', type=float, default=10.0)
     p.add_argument('--seed', type=int, default=0)
+    p.add_argument('--soft_labels', action='store_true', help="BCE target = A's share of the judges' votes (3-2 -> 0.6)")
+    p.add_argument('--train_min_votes', type=int, default=-1,
+                   help='train only on battles whose winner got at least this many votes (5 = unanimous); -1 = all')
     p.add_argument('--clips', default='clips', help="clip feature subdir: 'clips' (whole frame) or 'clips_crop' (dancer-centred)")
     p.add_argument('--brace_auto_turns', action='store_true',
                    help='use held-out-year automatic turns for BRACE instead of the human annotation')
