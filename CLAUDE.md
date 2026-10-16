@@ -116,7 +116,7 @@
   CUDA_VISIBLE_DEVICES=0 python main.py ... # 0, 1, 3 중 하나. 절대 2 포함 금지
   ```
 
-- GPU 배분: 0 = 재현, 1 = 개선·ablation, 3 = 배틀 feature 추출(비면 재현 추가)
+- GPU 배분: **2026-10-16 정현도 결정: GPU 0만 쓴다.** 실험 하나가 VRAM 1–2GB라 seed 여러 개도 GPU 0 한 장에 함께 올린다. GPU 1, 3은 다시 허락받기 전까지 쓰지 않는다
 - 연구실 규칙:
   - 장시간 작업 전 Teams › IRL CBNU › General › **Schedule Server Usage** 탭에 예약한다. 예약은 사람이 하므로 필요하면 요청할 것.
   - 환경은 **Conda 또는 Docker만** 쓴다(venv 금지).
