@@ -324,3 +324,32 @@ Leave-one-year-out antisymmetric logistic regression on the 17 differences: 46.5
 No gain overall. The pattern seen in the probes repeats: clear decisions 55–62%, split decisions at or below chance.
 
 **Summary of the improvement attempts (rounds 7–8).** (1) Outcomes are predictable from dancer strength (Elo 60%, past wins 66%), (2) a dancer close-up does not make Kinetics features encode it, (3) cleaner / softer labels do not help. Remaining lever: expert round-level labels (정현도) and/or a representation trained for dance quality.
+
+### Round 9: expert evidence from real judges + fixed expert rubric (2026-10-16)
+
+**What real judges decide on** (`tools/battle/olympics_judging.py`, Paris 2024 results book, 144 rounds × 9 judges = 1,296 votes, per-criterion signed percentages; `ours/battle/olympics_criteria.csv`):
+
+| criterion | agrees with the judge's overall pick | share of the overall margin | summed over judges, predicts the round winner |
+| --- | --- | --- | --- |
+| Execution | 87.8% | 25.2% | 88.2% |
+| Vocabulary | 82.3% | 22.5% | 83.3% |
+| Technique | 77.0% | 19.4% | 72.9% |
+| Musicality | 75.7% | 17.9% | 70.8% |
+| Originality | 71.3% | 15.0% | 68.1% |
+
+Judges on the majority side of a round: 80.9%; 5–4 / 4–5 rounds 13.9%.
+
+**Fixed rubric** (`tools/battle/rubric_scores.py`): each criterion measured by observable cues on the dancer's own turns (CLIP zero-shot prompts on the dancer crops + estimated-pose statistics + beat alignment), standardised, weighted by the judges' margin shares above. Nothing fitted on our winners.
+
+| score | 170 (BRACE + consistent extra) | BRACE 81 | all 280 | unanimous (n=61) |
+| --- | --- | --- | --- | --- |
+| Execution proxy | 48.8% | 45.7% | 51.1% | 49.2% |
+| Vocabulary proxy | 54.1% | 56.8% | 52.1% | 60.7% |
+| Technique proxy | 55.3% | 59.3% | 55.7% | 63.9% |
+| Musicality proxy | 51.8% | 55.6% | 51.1% | 41.0% |
+| Originality proxy | 60.0% (52.4–67.1) | 58.0% | 50.7% | 54.1% |
+| **Weighted rubric** | 55.9% (48.2–62.9) | **63.0% (51.9–72.8)** | 54.6% (48.9–60.4) | 50.8% |
+| 5 criteria, logistic LOYO | 55.9% | 54.3% | 52.5% | 63.9% |
+
+- The rubric reaches 63.0% on BRACE (human turns), but not on the extra battles (automatic turns) or the full 280; the originality signal on the 170 set (60%) does not hold on 280 (50.7%). No result is robust across subsets.
+- The most decisive criterion for real judges, **Execution (88%)**, is exactly the one our proxies cannot measure (48.8%, chance): crashes, slips and control show up as brief events that whole-clip CLIP similarity and pose statistics average away. This is the clearest statement of the measurement gap.
