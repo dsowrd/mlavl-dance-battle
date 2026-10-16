@@ -353,3 +353,15 @@ Judges on the majority side of a round: 80.9%; 5–4 / 4–5 rounds 13.9%.
 
 - The rubric reaches 63.0% on BRACE (human turns), but not on the extra battles (automatic turns) or the full 280; the originality signal on the 170 set (60%) does not hold on 280 (50.7%). No result is robust across subsets.
 - The most decisive criterion for real judges, **Execution (88%)**, is exactly the one our proxies cannot measure (48.8%, chance): crashes, slips and control show up as brief events that whole-clip CLIP similarity and pose statistics average away. This is the clearest statement of the measurement gap.
+
+### Round 10: back to the paper's formulation – score regression (2026-10-16)
+
+정현도: "원래 논문의 점수 방식으로 하는걸로 돌아가볼까". Breaking battles have no performance score, so the score is the dancer's **tournament placement** in that year (5 champion, 4 runner-up, 3 semifinal, 2 quarterfinal, 1 top-16 exit, from the Wikipedia brackets); one sample = one dancer's turns in one battle (340 performances from the 170 battles). Confound: the battle's round alone gives Spearman ρ 0.60 (a finalist is ≥ 4), so the metrics that count hold the round fixed: ρ within (year, round) groups, ρ on Top-16 battles (every dancer once; null 95% interval −0.15..0.15), and within-battle pair accuracy.
+
+| model (leave-one-year-out) | ρ within round | ρ Top-16 | pair accuracy |
+| --- | --- | --- | --- |
+| linear probe, Swin / AST / both, PCA 16–64 (`tools/battle/placement_probe.py`) | −0.00 … 0.10 | −0.07 … 0.02 | 44.7–55.3% |
+| MLAVL regression, RG init, 40 ep (`ours/train_placement.py`), seeds 0/1/2 | −0.02 / −0.02 / 0.03 | −0.07 / −0.03 / −0.06 | 51.2 / 53.5 / 55.3% |
+| same, seed ensemble | 0.02 | −0.06 | 55.9% |
+
+No signal: the score formulation of the paper does not change the outcome; predicting how far a dancer goes from one performance is as hard as predicting the battle. (Dancer-grouped CV gives ρ −0.2…−0.3 in the probe, the known regression-to-the-training-mean artefact of grouped CV; not evidence of an inverse signal.) Runs on GPU 0 only (policy since 2026-10-16).
