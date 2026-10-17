@@ -13,7 +13,10 @@ PAMFN RG and Fis-V). This follows PAMFN tools/extract_features.py:
          to tm_dim time steps (centre slice, as in the original AST code); output (cls + dist) / 2
 
 PAMFN's tm_dim and audio sample-rate arguments are not recorded; --tm_dim / --audio_sr are chosen by `probe` (the
-setting whose per-dimension mean profile on BRACE correlates best with PAMFN's).
+setting whose per-dimension mean profile on BRACE correlates best with PAMFN's). Probe result (10 BRACE videos,
+2026-10-18): audio tm_dim 64, 32 kHz: 0.892 / 0.890 with PAMFN RG / Fis-V (HF default preprocessing 0.45; PAMFN RG vs
+Fis-V 0.95). Video: the mean-profile test is dominated by content (K600 + PAMFN preprocessing 0.21, K400 0.12), and
+Kinetics-400 / -600 heads both classify PAMFN and our features correctly, so the video spaces are compatible.
 
     CUDA_VISIBLE_DEVICES=0 $MLAVL_PY -I tools/battle/extract_features_pamfn.py probe
     CUDA_VISIBLE_DEVICES=0 $MLAVL_PY -I tools/battle/extract_features_pamfn.py extract --set brace --tm_dim T --audio_sr S
@@ -141,18 +144,19 @@ def probe(a):
 def extract(a):
     device = torch.device('cuda')
     videos, feats = SETS[a.set]
-    os.makedirs(os.path.join(feats, 'clips_pamfn'), exist_ok=True)
-    vm = load_vst_k600().eval().to(device)
+    os.makedirs(os.path.join(feats, a.out), exist_ok=True)
+    vm = None if a.audio_only else load_vst_k600().eval().to(device)
     ast = PamfnAST(a.tm_dim, device)
     ids = sorted(f[:-4] for f in os.listdir(os.path.join(feats, 'clips')) if f.endswith('.npz'))
     for k, vid in enumerate(ids):
-        dst = os.path.join(feats, 'clips_pamfn', vid + '.npz')
+        dst = os.path.join(feats, a.out, vid + '.npz')
         if os.path.exists(dst):
             continue
         c = dict(np.load(os.path.join(feats, 'clips', vid + '.npz')))
         T = len(c['rgb'])
         path = os.path.join(videos, vid + '.mp4')
-        c['rgb'] = video_feats(vm, path, T, device).astype(np.float32)
+        if not a.audio_only:
+            c['rgb'] = video_feats(vm, path, T, device).astype(np.float32)
         c['audio'] = ast(load_wave(path, a.audio_sr), a.fbank_sr, T).astype(np.float32)
         assert len(c['rgb']) == T and len(c['audio']) == T, (vid, len(c['rgb']), len(c['audio']), T)
         np.savez(dst + '.tmp.npz', **c)
@@ -167,5 +171,9 @@ if __name__ == '__main__':
     p.add_argument('--tm_dim', type=int, default=128)
     p.add_argument('--audio_sr', type=int, default=16000)
     p.add_argument('--fbank_sr', type=int, default=16000)
+    p.add_argument('--audio_only', action='store_true',
+                   help='keep the existing clips/ video features (K400 and K600 Swin-B share a feature space: Kinetics heads are '
+                        'interchangeable on both PAMFN and our features) and only redo the audio the PAMFN way')
+    p.add_argument('--out', default='clips_pamfn')
     a = p.parse_args()
     probe(a) if a.mode == 'probe' else extract(a)
