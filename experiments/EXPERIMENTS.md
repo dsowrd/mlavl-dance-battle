@@ -365,3 +365,19 @@ Judges on the majority side of a round: 80.9%; 5–4 / 4–5 rounds 13.9%.
 | same, seed ensemble | 0.02 | −0.06 | 55.9% |
 
 No signal: the score formulation of the paper does not change the outcome; predicting how far a dancer goes from one performance is as hard as predicting the battle. (Dancer-grouped CV gives ρ −0.2…−0.3 in the probe, the known regression-to-the-training-mean artefact of grouped CV; not evidence of an inverse signal.) Runs on GPU 0 only (policy since 2026-10-16).
+
+### Round 11: zero-shot scoring with the reproduced models (2026-10-17)
+
+정현도: "점수만 뽑고 점수 비교로 그냥 승패를 검증하는건 어때?" – the original model's input/output, no training on battles (`tools/battle/zero_shot_scores.py`). Each of the 18 reproduction checkpoints (RG Ball/Clubs/Hoop/Ribbon, Fis-V TES/PCS × seeds 0–2, `_best.pkl`) with its own vocabulary and settings scores each dancer's turns (same 1024-d Swin + 768-d AST clip features; ≤ 136 clips in one pass at real length, longer sequences on windows of the training clip number, averaged); higher score wins. GPU 0, 9 min for 280 battles × 18 checkpoints.
+
+| scorer | all 280 | 170 (BRACE + consistent extra) | BRACE 81 | unanimous (n=61) |
+| --- | --- | --- | --- | --- |
+| single checkpoints | 44.3–56.8% | 41.8–56.5% | 39.5–63.0% | 41.0–62.3% |
+| RG ensemble (12) | 51.8% (45.7–57.5) | 49.4% | 53.1% | 57.4% |
+| Fis-V TES ensemble (3) | 50.7% | 51.8% | 49.4% | 59.0% |
+| Fis-V PCS ensemble (3) | 50.4% | 50.0% | 51.9% | 54.1% |
+| all 18 ensemble | 51.1% (45.0–56.8) | 50.0% | 54.3% | 57.4% |
+
+Agreement between scorers (Spearman of the A − B score difference over the 280 battles): seeds of the same model 0.39–0.74 (Ball 0.69, Ribbon 0.69, TES 0.69, PCS 0.74), RG vs Fis-V models −0.12, all pairs 0.19.
+
+Reading: the AQA models produce consistent, non-random judgements of breaking (seeds agree), but what a rhythmic-gymnastics model and a figure-skating model call "better" disagree with each other and neither agrees with breaking judges (≈ 50%). Quality as learned from gymnastics / skating scores does not transfer to battles; this also separates the earlier battle-training results from over-fitting: without any training on battles the result is the same chance level.
