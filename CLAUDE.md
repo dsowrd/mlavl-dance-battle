@@ -233,6 +233,21 @@ CUDA_VISIBLE_DEVICES=0 $MLAVL_PY main.py ...
 - [ ] **승패 판정 (siamese)**: 같은 모델로 ŝ_A, ŝ_B → P(A 승) = σ((ŝ_A − ŝ_B)/τ), BCE 또는 MarginRankingLoss. 표 비율(3:0, 2:1)을 알면 soft label로 사용
 - [ ] 데이터가 적으므로 FS1000으로 pretrain한 가중치에서 fine-tune (점수 head는 재초기화)
 
+### Phase 5b · 우리 데이터에 맞춘 재학습 (2026-10-17 정현도 결정)
+
+배경: 배틀 실험 11라운드가 모두 우연 수준이었다. 그중 RG·Fis-V 가중치를 쓴 실험(초기화, zero-shot)은 배틀 feature가 PAMFN과 다른 체크포인트(Swin-B **K400**, 다른 전처리)에서 나와 입력 공간이 어긋나 있었다(차원 평균 패턴 상관 영상 0.12, 음악 0.45). PAMFN은 Swin-B **Kinetics-600 + IN22k**, `Resize 256 → CenterCrop 224x300 → Resize 224`, AST AudioSet 0.4593을 쓴다(`tools/battle/vst_k600.py`, `tools/battle/extract_features_pamfn.py`).
+
+방침 (정현도): **모든 과정을 우리 배틀 데이터에 초점을 맞춰 한다. 미세조정 같은 가벼운 방식을 먼저 하고, 해결되지 않으면 모델을 새로 학습한다. 영상뿐 아니라 음악과 프롬프트도 브레이킹에 맞춘다.**
+
+1. [ ] 입력 맞추기: PAMFN과 같은 backbone·전처리로 배틀 feature 재추출(`clips_pamfn`) → zero-shot·미세조정 재평가
+2. [ ] 가벼운 미세조정
+   - MLAVL 본체: RG·Fis-V 가중치에서 시작해 배틀로 미세조정 (맞춘 feature로 다시)
+   - 영상: Video Swin K600 뒤쪽 층을 BRACE 동작 구간 라벨(toprock/footwork/powermove 1,352개)로 미세조정
+   - 음악: AST 뒤쪽 층을 BRACE 라운드 진행 여부 + librosa 비트/템포로 미세조정
+   - 프롬프트: 브레이킹 어휘 CLIP 임베딩을 학습 가능한 프롬프트로(초기값 근처 규제)
+3. [ ] 해결 안 되면 새로 학습: 브레이킹 영상 약 25시간으로 자기지도 사전학습(VideoMAE 등) 후 동작·승패 라벨 학습
+- GPU는 0만 쓴다. 평가는 항상 연도 단위 교차검증, 우연(50%)과 내용 기반 규칙 대비 신뢰구간으로 판단한다
+
 ### Phase 6 · 평가와 최종발표 (12/1, 12/8)
 
 - 지표: pairwise accuracy, AUC. 표본이 작으니 bootstrap 신뢰구간 포함
