@@ -107,7 +107,7 @@
 
 ## 4. 실행 환경: Server 1만 사용
 
-- 사양 (2026-10-11 직접 확인): RTX A6000 48GB × 4 · RAM 251GB · 루트 SSD 409GB(`/`, 여유 약 25GB) + HDD 3.7TB(`/dev/sdb1`, ext4, **미마운트**) · Ubuntu 20.04.6 · 드라이버 535.230.02(CUDA 12.2) · 기본 nvcc 11.8, `/usr/local`에 11.3/11.6/11.7/11.8/12.1/12.6/12.8 toolkit (위치: E8-10 B03)
+- 사양 (2026-10-11 직접 확인, **2026-10-17 Ubuntu 22.04.5 / 커널 6.8 / 드라이버 580.178.04로 업그레이드됨**. 업그레이드 후 torch 2.4.1+cu121, PyG smoke test, Video Swin forward 정상 확인): RTX A6000 48GB × 4 · RAM 251GB · 루트 SSD 409GB(`/`, 업그레이드 후 여유 약 90GB) + HDD 3.6TiB(`/dev/sdb1`, ext4, `/data`, fstab 등록됨) · 기본 nvcc 11.8, `/usr/local`에 11.3/11.6/11.7/11.8/12.1/12.6/12.8 toolkit (위치: E8-10 B03)
 - **GPU 2는 하드웨어 에러로 사용 금지. GPU 0, 1, 3만 사용한다.** (nvidia-smi 상으로는 정상처럼 보이지만 부팅 로그에 GPU 2(PCI 99:00) Xid 62 기록이 있다. 규칙 유지)
 - 모든 실행에 아래 두 줄을 붙인다:
 
@@ -124,7 +124,7 @@
   - 결과와 데이터는 서버에만 두지 말고 **NAS에도 백업**한다.
 - 저장공간:
   - 루트 SSD(409GB, 여유 약 25GB): conda 환경(`mlavl` 5.5GB), 코드, 체크포인트. **여유가 거의 없다.** 공개 feature도 HDD에 둔다
-  - HDD 3.7TB(`/dev/sdb1`) → **`/data`에 마운트됨 (2026-10-11, 정현도).** 단 여유는 111GB뿐이다(다른 사람 자료 `/data/irl`, `/data/docker-data`가 3.3TB 차지. 건드리지 않는다). **fstab에 없어서 재부팅하면 풀린다.** 등록하려면 `UUID=2f54f02a-274b-43d3-9ea3-56045d5063da /data ext4 defaults,nofail 0 2` 한 줄을 sudo로 추가
+  - HDD 3.7TB(`/dev/sdb1`) → **`/data`에 마운트됨 (2026-10-11, 정현도).** 단 여유는 111GB뿐이다(다른 사람 자료 `/data/irl`, `/data/docker-data`가 3.3TB 차지. 건드리지 않는다). 2026-10-17 기준 fstab에 등록되어 재부팅 후에도 자동 마운트된다(업그레이드 재부팅 후 확인)
   - 우리 데이터 루트 `MLAVL_DATA=/data/mlavl`: `features/{RG,FISV,FS1000}`, `videos/`, `frames/`, `datasets/{brace,olympics2024}`, `ckpt_backup/`
   - NAS: 서버에 마운트되어 있지 않다(fstab·mount에 NFS/CIFS 없음). 주소를 받으면 확인
 - 외부 인터넷: github, pypi, PyTorch/PyG wheel 인덱스, YouTube, Google Drive 모두 접근 가능 (프록시 없음)

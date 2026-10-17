@@ -25,7 +25,8 @@ for r in w.itertuples():
         k = np.zeros(len(st), bool)
         for s_, e_ in g[g.dancer == name][['start_frame', 'end_frame']].values: k |= (st >= s_) & (st + L <= e_ + 1)
         m[side] = k
-    rows.append(dict(src='brace', year=r.year, y=r.winner_is_a, votes=win_votes(r), d=d, ap=ap, po=po, m=m))
+    rows.append(dict(src='brace', year=r.year, y=r.winner_is_a, votes=win_votes(r), d=d, ap=ap, po=po, m=m,
+                     dc=np.load(f'/data/mlavl/features/BRACE/clips_crop/{r.video_id}.npz')))
 for r in e[e.in_brace == 0].itertuples():
     cf = f'/data/mlavl/features/BCONE_EXTRA/clips/{r.video_id}.npz'; tf = cf.replace('clips', 'turns'); af = cf.replace('clips', 'appearance')
     if not (os.path.exists(cf) and os.path.exists(tf) and os.path.exists(af)): continue
@@ -33,7 +34,8 @@ for r in e[e.in_brace == 0].itertuples():
     if turn_consistency(t['dancer'], ap['emb'], ap['has'])[0] < 0.8: continue
     m = {'a': t['dancer'] == 1, 'b': t['dancer'] == 2}
     if m['a'].sum() < 8 or m['b'].sum() < 8: continue
-    rows.append(dict(src='extra', year=r.year, y=r.winner_is_a, votes=win_votes(r), d=np.load(cf), ap=ap, po=None, m=m))
+    rows.append(dict(src='extra', year=r.year, y=r.winner_is_a, votes=win_votes(r), d=np.load(cf), ap=ap, po=None, m=m,
+                     dc=np.load(cf.replace('/clips/', '/clips_crop/'))))
 print(len(rows), 'battles; winner votes', pd.Series([x['votes'] for x in rows]).value_counts().to_dict())
 def F(x, side, kind):
     k = x['m'][side]
@@ -42,6 +44,7 @@ def F(x, side, kind):
     elif kind == 'pose':
         v = x['po']['pose'][k & (x['po']['has_pose'] > 0)]
     elif kind == 'video': v = x['d']['rgb'][k]
+    elif kind == 'cropvid': v = x['dc']['rgb'][k]
     else: v = x['d']['audio'][k]
     return np.concatenate([v.mean(0), v.std(0)])
 def probe(rs, kind, k=16, C=1.0):
@@ -57,7 +60,7 @@ def probe(rs, kind, k=16, C=1.0):
     return ((p > 0.5) == y).astype(float), np.array([x['votes'] for x in rs]), np.array([x['src'] for x in rs])
 def ci(c):
     b = rng.choice(c, (5000, len(c))).mean(1); return f'{c.mean():.1%} ({np.percentile(b,2.5):.1%}-{np.percentile(b,97.5):.1%}, n={len(c)})'
-for kind, rs in [('crop', rows), ('pose', [x for x in rows if x['src'] == 'brace']), ('video', rows), ('audio', rows)]:
+for kind, rs in [('cropvid', rows), ('video', rows), ('crop', rows), ('pose', [x for x in rows if x['src'] == 'brace']), ('audio', rows)]:
     for k in [8, 16, 32]:
         c, v, s = probe(rs, kind, k)
         print(f'{kind:5s} k={k:2d}: all {ci(c)} | unanimous(5) {ci(c[v==5])} | split(3) {ci(c[v==3])}')
@@ -75,7 +78,7 @@ def probe_clean(rs, kinds, k=16, C=1.0, min_votes=4):
         clf = LogisticRegression(C=C, fit_intercept=False, max_iter=3000).fit(pca.transform(Z), Y)
         p[te] = clf.predict_proba(pca.transform(sc.transform(D[te])))[:, 1]
     return ((p > 0.5) == y).astype(float), v
-for kinds in [['crop'], ['video'], ['crop', 'video']]:
+for kinds in [['cropvid'], ['video'], ['cropvid', 'audio']]:
     for k in [8, 16, 32]:
         c, v = probe_clean(rows, kinds, k)
         print(f"{'+'.join(kinds):10s} k={k:2d}: all {ci(c)} | unanimous {ci(c[v==5])} | 4-1 {ci(c[v==4])} | split {ci(c[v==3])}")
