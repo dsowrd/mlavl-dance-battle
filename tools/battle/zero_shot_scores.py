@@ -8,7 +8,7 @@ pass at its real length; longer ones are scored on windows of the model's traini
 Prediction: the dancer with the higher score wins.
 
     CUDA_VISIBLE_DEVICES=0 $MLAVL_PY tools/battle/zero_shot_scores.py
-Writes /data/mlavl/features/BRACE/zero_shot_scores.csv (one row per battle and checkpoint).
+Writes /data/mlavl/features/BRACE/zero_shot_scores_<clips>.csv (one row per battle and checkpoint).
 """
 import glob
 import os
@@ -52,12 +52,13 @@ def score(m, v, a, clip, device):
     return m(x, y)['output'].mean().item()
 
 
-def main():
+def main(clips='clips'):
     device = torch.device('cuda')
-    brace = load_battles('/data/mlavl/features/BRACE', '/data/mlavl/datasets/brace', 'ours/battle')
+    brace = load_battles('/data/mlavl/features/BRACE', '/data/mlavl/datasets/brace', 'ours/battle', clips=clips)
     for it in brace:
         it['source'] = 'brace'
-    extra_all, _ = load_extra_battles('/data/mlavl/features/BCONE_EXTRA', 'ours/battle/extra_battles.csv', min_consistency=0)
+    extra_all, _ = load_extra_battles('/data/mlavl/features/BCONE_EXTRA', 'ours/battle/extra_battles.csv', min_consistency=0,
+                                      clips=clips)
     cons = {i['video_id'] for i in load_extra_battles('/data/mlavl/features/BCONE_EXTRA', 'ours/battle/extra_battles.csv',
                                                       min_consistency=0.8)[0]}
     items = brace + extra_all
@@ -77,7 +78,7 @@ def main():
                          'ckpt': tag, 'seed': seed, 's_a': sa, 's_b': sb})
         print('done', os.path.basename(ck), flush=True)
     df = pd.DataFrame(rows)
-    df.to_csv('/data/mlavl/features/BRACE/zero_shot_scores.csv', index=False)
+    df.to_csv(f'/data/mlavl/features/BRACE/zero_shot_scores_{clips}.csv', index=False)
     report(df)
 
 
@@ -113,7 +114,8 @@ def report(df):
 
 
 if __name__ == '__main__':
+    # usage: zero_shot_scores.py [clips_subdir]   |   zero_shot_scores.py report [clips_subdir]
     if len(sys.argv) > 1 and sys.argv[1] == 'report':
-        report(pd.read_csv('/data/mlavl/features/BRACE/zero_shot_scores.csv'))
+        report(pd.read_csv(f"/data/mlavl/features/BRACE/zero_shot_scores_{sys.argv[2] if len(sys.argv) > 2 else 'clips'}.csv"))
     else:
-        main()
+        main(sys.argv[1] if len(sys.argv) > 1 else 'clips')
