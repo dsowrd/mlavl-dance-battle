@@ -381,3 +381,17 @@ No signal: the score formulation of the paper does not change the outcome; predi
 Agreement between scorers (Spearman of the A − B score difference over the 280 battles): seeds of the same model 0.39–0.74 (Ball 0.69, Ribbon 0.69, TES 0.69, PCS 0.74), RG vs Fis-V models −0.12, all pairs 0.19.
 
 Reading: the AQA models produce consistent, non-random judgements of breaking (seeds agree), but what a rhythmic-gymnastics model and a figure-skating model call "better" disagree with each other and neither agrees with breaking judges (≈ 50%). Quality as learned from gymnastics / skating scores does not transfer to battles; this also separates the earlier battle-training results from over-fitting: without any training on battles the result is the same chance level.
+
+### Round 12: zero-shot again with PAMFN-matched audio (2026-10-18)
+
+Phase 5b step 1. Audio for all 282 battles re-extracted the PAMFN way (`tools/battle/extract_features_pamfn.py extract --audio_only --tm_dim 64 --audio_sr 32000 --fbank_sr 32000` → `clips_pamfn/`; per-dimension mean-profile correlation with PAMFN 0.89 vs 0.45 before). Video features kept (K400 and K600 Swin-B share a feature space, see commit 3ac7ed7). GPU 0 shared with the Phase 3 Fis-V queue: ~2–3 min per video, finished overnight. Then round 11 repeated unchanged (`zero_shot_scores.py clips_pamfn`).
+
+| scorer | all 280 | 170 | BRACE 81 | unanimous (n=61) |
+| --- | --- | --- | --- | --- |
+| single checkpoints | 43.9–58.2% | 40.6–58.2% | 38.3–61.7% | 44.3–63.9% |
+| RG ensemble (12) | 51.4% (45.7–57.1) | 48.8% | 53.1% | 59.0% |
+| Fis-V TES ensemble (3) | 50.7% | 51.8% | 46.9% | 59.0% |
+| Fis-V PCS ensemble (3) | 51.1% | 51.2% | 50.6% | 49.2% |
+| all 18 ensemble | 51.1% (45.4–57.1) | 50.6% | 54.3% | 57.4% |
+
+Reading: matching the audio input to the training distribution changes nothing (all within ±1 point of round 11). The input mismatch was not why the reproduced models fail on battles; what they learned as "quality" does not transfer. Next: fine-tune with the matched features (`pamfn_all`, same setting as `d0_extra08_all`), then step 2 (backbones and prompts adapted to breaking).
