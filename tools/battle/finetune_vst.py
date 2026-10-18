@@ -227,7 +227,7 @@ def extract(a):
     videos, features = SETS[a.set]
     out_dir = os.path.join(features, a.out)
     os.makedirs(out_dir, exist_ok=True)
-    ids = sorted(f[:-4] for f in os.listdir(os.path.join(features, 'clips_pamfn')) if f.endswith('.npz'))
+    ids = sorted(f[:-4] for f in os.listdir(os.path.join(features, 'clips_pamfn')) if f.endswith('.npz'))[a.shard::a.nshards]
     for k, vid in enumerate(ids):
         dst = os.path.join(out_dir, vid + '.npz')
         if os.path.exists(dst):
@@ -277,5 +277,7 @@ if __name__ == '__main__':
     p.add_argument('--workers', type=int, default=8)
     p.add_argument('--set', choices=list(SETS), default='brace')
     p.add_argument('--out', default='clips_ft')
+    p.add_argument('--shard', type=int, default=0)
+    p.add_argument('--nshards', type=int, default=1)
     a = p.parse_args()
     {'cache': cache, 'train': train, 'extract': extract}[a.mode](a)

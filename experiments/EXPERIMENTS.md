@@ -428,3 +428,29 @@ Fine-tuning with the matched features (`pamfn_all`: RG Ribbon s2 init, draft0 vo
 | PAMFN-matched audio `clips_pamfn` | 54.1 / 55.3 / 54.1% | 52.9% (45.3–60.0) | 0.24 | 50.6% | 55.1% |
 
 Same chance level. Step 1 of Phase 5b (input matching) is closed: neither zero-shot nor fine-tuning moves. Moving on to step 2 (adapting the backbones and the prompts to breaking).
+
+### Round 13: adapting the backbones and the prompts to breaking (Phase 5b step 2, 2026-10-18/19)
+
+**Video: Video Swin-B K600 fine-tuned on BRACE move types** (`tools/battle/finetune_vst.py`, ckpt `ckpt/vst_move.pt`). Dancer-centred crops of the 32-frame grid clips inside the 1,352 annotated segments (cache: 256 px JPEG at box scale 1.6, 4.6 GB on /data; train: random 75–100 % crop + flip, eval: centre = box scale 1.4 = the extraction crop). BRACE's own sequence-level split: 6,363 train clips / 905 segments, 2,733 test clips / 413 segments. Trained: last stage (features.6) + norm, 25.4M params, AdamW lr 5e-5 (head 5e-4), one-cycle, 15 epochs, batch 16, fp16, GPU 0, ~2 h.
+
+| model | test clip acc | test segment acc |
+| --- | --- | --- |
+| frozen K400 whole frame, linear probe (leave-one-year-out) | 0.643 | 0.736 |
+| frozen K400 dancer crop, linear probe (leave-one-year-out) | 0.699 | 0.819 |
+| fine-tuned K600 dancer crop, epoch 1 (kept) | 0.815 | **0.903** |
+| same, epoch 14 | 0.783 | 0.869 |
+
+Best after 1–2 epochs, then over-fits (train loss keeps falling). Move labels only; winner labels are never used and the extra battles have none.
+
+**Audio: AST fine-tuned toward beat position and tempo** (`tools/battle/finetune_ast.py`). PAMFN preprocessing (each clip sees 0.64 s = 64 fbank frames; frozen output = `clips_pamfn` audio, r = 0.99999998). Targets from librosa beats on all 282 videos: beat in each of 8 bins of 80 ms (BCE), log2 tempo from the median inter-beat interval within ±5 s (MSE). Held out: BRACE 2020 + every 10th extra video (66,766 / 9,083 clips). AdamW lr 5e-5 (heads ×20), batch 64, ~10–20 min per run.
+
+| trained AST layers | params | best held-out beat AUC (epoch) | tempo within 4 % |
+| --- | --- | --- | --- |
+| heads only (frozen = linear probe) | 0 | 0.619 (7) | 0.18 |
+| last 2 | 14.2M | 0.664 (7) | 0.16 |
+| last 4 | 28.4M | 0.698 (6) | 0.13 |
+| last 6 (kept, `ckpt/ast_beat_b6.pt`) | 42.5M | **0.735 (5)** | 0.14 |
+
+Frozen AudioSet AST barely encodes where the beat falls inside a clip; fine-tuning half the network brings it to 0.735. Tempo does not improve (librosa's tempo is ambiguous between half and double time, a label problem). AST's time resolution (16-frame patches, stride 10 → 5 time positions per 0.64 s) bounds the 80 ms task.
+
+Battle features from these backbones (`scripts/extract_ft.sh`, 4 shards on GPU 0): `clips_ft` (fine-tuned dancer-crop video + PAMFN audio), `clips_ftva` (+ fine-tuned AST audio).
