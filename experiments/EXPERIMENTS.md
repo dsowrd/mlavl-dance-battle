@@ -454,3 +454,12 @@ Best after 1–2 epochs, then over-fits (train loss keeps falling). Move labels 
 Frozen AudioSet AST barely encodes where the beat falls inside a clip; fine-tuning half the network brings it to 0.735. Tempo does not improve (librosa's tempo is ambiguous between half and double time, a label problem). AST's time resolution (16-frame patches, stride 10 → 5 time positions per 0.64 s) bounds the 80 ms task.
 
 Battle features from these backbones (`scripts/extract_ft.sh`, 4 shards on GPU 0): `clips_ft` (fine-tuned dancer-crop video + PAMFN audio), `clips_ftva` (+ fine-tuned AST audio).
+
+**Prompts: learnable breaking prompts** (`--learn_text`: the 90 draft0 CLIP text vectors become parameters, lr 1e-3, loss + 1.0 × relative squared distance to the CLIP init). Run `pamfn_lt_all` (= `pamfn_all` + `--learn_text`, 3 seeds, GPU 0, 2026-10-18 22:10 → 10-19 01:05):
+
+| run | seeds (170) | seed ensemble | p(acc ≤ 50%) | BRACE 81 | extra 89 |
+| --- | --- | --- | --- | --- | --- |
+| `pamfn_all` (fixed prompts) | 54.1 / 55.3 / 54.1% | 52.9% (45.3–60.0) | 0.24 | 50.6% | 55.1% |
+| `pamfn_lt_all` (learnable prompts) | 56.5 / 54.7 / 53.5% | 55.3% (47.6–62.4) | 0.10 | 55.6% | 55.1% |
+
+The prompts move little (relative drift 3.5 % on average, max 7 %, cosine to init ≥ 0.997) and the result stays within chance (+2.4 points, inside the seed spread). Nothing in the battle labels pulls the text anchors toward a different meaning.
