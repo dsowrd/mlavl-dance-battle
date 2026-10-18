@@ -4,6 +4,9 @@
 #          (2) removed hard-coded .cuda() on w1/weight_AV/weight_V/edge_index so the model follows .to(device).
 #          (3) Phase 3-3 regularisation (ours): --clip_mask p zeroes random whole clips (same mask for V and A) during
 #              training, --input_dropout p is nn.Dropout on the projected V/A tokens before the shared encoder.
+#          (4) Phase 5b (ours): config.learn_text makes the precomputed text features a trainable parameter (learnable
+#              prompts initialised from the CLIP embeddings; the initial values are kept in the non-persistent
+#              buffer text_init so the trainer can regularise toward them).
 from torch import nn
 import torch
 import os
@@ -152,7 +155,11 @@ class MLAVL(nn.Module):
             if tf.shape[0] != expected:
                 raise ValueError(f'{tf_path} has {tf.shape[0]} rows but --n_text {self.n_text} / --n_query {self.n_query} '
                                  f'expect {expected} (= 2*n_text + 3*n_query). Check --n_text (FS 42, RG 32).')
-            self.register_buffer('text_feature', tf)
+            if getattr(config, 'learn_text', False):
+                self.text_feature = nn.Parameter(tf.clone())
+                self.register_buffer('text_init', tf.clone(), persistent=False)
+            else:
+                self.register_buffer('text_feature', tf)
         self.gcn_V = MAGG_Module(hidden_dim, hidden_dim // 2, config.dropout)
         self.gcn_A = MAGG_Module(hidden_dim, hidden_dim // 2, config.dropout)
 

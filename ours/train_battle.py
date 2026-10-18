@@ -42,6 +42,7 @@ def build_model(a, device):
     cfg = options.parser.parse_args([])
     cfg.dataset, cfg.text_feature, cfg.n_text, cfg.n_query = 'rg', a.text_feature, a.n_text, 6
     cfg.clip_num, cfg.in_dim, cfg.dropout = a.clip_num, 1024, a.dropout
+    cfg.learn_text = a.learn_text
     names = pd.read_csv(a.action_list)['name'].tolist()
     model = MLAVL(1024, 256, 8, 1, 3, 6, a.dropout, cfg, names).to(device)
     if a.init:
@@ -83,12 +84,14 @@ def run_fold(a, items, test_year, device, seed):
     for n_, p in model.named_parameters():
         if any(n_.startswith(m + '.') for m in frozen):
             p.requires_grad = False
-    params = [p for n_, p in model.named_parameters() if p.requires_grad and not n_.endswith('.gate')]
+    params = [p for n_, p in model.named_parameters() if p.requires_grad and not n_.endswith('.gate') and n_ != 'text_feature']
+    text = [model.text_feature] if a.learn_text else []
     scalars = [log_k] + ([bias] if a.order_bias else []) + [p for n_, p in model.named_parameters() if n_.endswith('.gate')]
     # the scale k and the order bias get their own, larger lr: with Adam a scalar moves ~lr per step, so at the
     # model lr (1e-4) they could not leave their initial values within a few hundred steps (seen in rg_e10bias)
     opt = torch.optim.Adam([{'params': params, 'lr': a.lr, 'weight_decay': 1e-4},
-                            {'params': scalars, 'lr': a.scalar_lr, 'weight_decay': 0.0}])
+                            {'params': scalars, 'lr': a.scalar_lr, 'weight_decay': 0.0}] +
+                           ([{'params': text, 'lr': a.text_lr, 'weight_decay': 0.0}] if text else []))
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, a.epochs, eta_min=a.lr * 0.01)
     lf = mlavl_loss.LossFun(a.alpha, 1.0, alpha_ce=a.alpha_ce)
     DS = RoundPairDataset if a.unit == 'round' else BattleDataset
@@ -104,6 +107,9 @@ def run_fold(a, items, test_year, device, seed):
             oa, ob = model(va, aa), model(vb, ab)
             logit = log_k.exp() * (oa['output'] - ob['output']) + bias * first
             loss = F.binary_cross_entropy_with_logits(logit, y) + a.aux * 0.5 * (aux_loss(lf, oa) + aux_loss(lf, ob))
+            if a.learn_text:   # learnable prompts stay near their CLIP initialisation (relative squared distance)
+                t0 = model.text_init
+                loss = loss + a.text_reg * ((model.text_feature - t0) ** 2).sum(1).mean() / (t0 ** 2).sum(1).mean()
             opt.zero_grad()
             loss.backward()
             opt.step()
@@ -126,7 +132,13 @@ def run_fold(a, items, test_year, device, seed):
                      'score_a': sa, 'score_b': sb, 'p_a': p, 'correct': int((p > 0.5) == bool(it['y']))})
     train_loss = tot / len(dl.dataset)
     gate = [p.item() for n_, p in model.named_parameters() if n_.endswith('.gate')]
-    return rows, train_loss, k, bias.item(), sum(p.numel() for p in params) + len(scalars), gate
+    if a.learn_text:
+        t0 = model.text_init
+        drift = (((model.text_feature - t0) ** 2).sum(1) / (t0 ** 2).sum(1)).sqrt()
+        cos = F.cosine_similarity(model.text_feature, t0, dim=1)
+        print(f'  prompts: relative drift mean {drift.mean().item():.3f} max {drift.max().item():.3f}, '
+              f'cosine to init min {cos.min().item():.3f}', flush=True)
+    return rows, train_loss, k, bias.item(), sum(p.numel() for p in params) + len(scalars) + sum(t.numel() for t in text), gate
 
 
 def auc(y, p):
@@ -217,4 +229,7 @@ if __name__ == '__main__':
                    'proj_visual,proj_audio,transformer.encoder,gcn_V,gcn_A,T_decoder,clip_fusion')
     p.add_argument('--order_bias', action='store_true', help='learn a first-dancer logit offset')
     p.add_argument('--scalar_lr', type=float, default=1e-2, help='lr of the logit scale k and the order bias')
+    p.add_argument('--learn_text', action='store_true', help='learnable prompts: the text features become parameters')
+    p.add_argument('--text_lr', type=float, default=1e-3)
+    p.add_argument('--text_reg', type=float, default=1.0, help='weight of the relative squared distance to the CLIP init')
     main(p.parse_args())
