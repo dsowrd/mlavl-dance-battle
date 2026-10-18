@@ -218,6 +218,7 @@ def train(a):
 @torch.no_grad()
 def extract(a):
     device = torch.device('cuda')
+    torch.set_num_threads(4)
     ck = torch.load(f'ckpt/{a.name}.pt', map_location='cpu', weights_only=False)
     model = MoveNet(ck['train_from'])
     missing, unexpected = model.load_state_dict(ck['state'], strict=False)
@@ -247,9 +248,9 @@ def extract(a):
                 break
             if not buf:
                 x0, y0, s = square(boxes[t], EXTRACT_SCALE)
-            buf.append(torch.from_numpy(f[y0:y0 + s, x0:x0 + s].copy()))
-            if len(buf) == 32:
-                x = torch.stack(buf).to(device).permute(3, 0, 1, 2).float().div_(255)
+            buf.append(f[y0:y0 + s, x0:x0 + s])
+            if len(buf) == 32:   # numpy stack: torch.stack of 32 CPU frames took 0.6 s under CPU contention
+                x = torch.from_numpy(np.stack(buf)).to(device).permute(3, 0, 1, 2).float().div_(255)
                 batch.append(nn.functional.interpolate(x, size=(224, 224), mode='bilinear', align_corners=False))
                 buf, t = [], t + 1
                 if len(batch) == 8:
