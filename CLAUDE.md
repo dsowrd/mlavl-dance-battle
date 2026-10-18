@@ -190,9 +190,9 @@ CUDA_VISIBLE_DEVICES=0 $MLAVL_PY main.py ...
 - [x] **정규화 강화(dropout)**: RG dropout 0.3 → 0.5, 0.7을 seed 3개로 비교 (2026-10-12, `scripts/phase3_dropout.sh`). **결과: 0.5는 baseline과 같음(ρ 0.776 vs 0.775), 0.7은 악화(0.751 / MSE 6.40).** Transformer 내부 dropout은 과적합의 지렛대가 아니다. 다음 후보: epoch 축소, weight decay, 입력 feature dropout, temporal augmentation. 상세는 `experiments/EXPERIMENTS.md` 3-1
 - [x] **weight decay**: Adam L2 1e-4 → 1e-3, 1e-2를 seed 3개로 비교 (2026-10-12). **결과: 효과 없음** (ρ 0.772 / 0.773 vs baseline 0.775, train ρ 0.99 유지). Adam의 coupled L2라 무력화된 것으로 보임. 더 볼 거면 `--optim adamw`(decoupled)로. 상세는 `experiments/EXPERIMENTS.md` 3-2
 - [x] **입력 쪽 정규화(ours)**: `--clip_mask` 0.1/0.25, `--input_dropout` 0.3/0.5를 seed 3개로 비교 (2026-10-13 10:29–18:20, 48회). **결과: 효과 없음.** input_dropout은 baseline과 동일(ρ 0.774 / 0.771 vs 0.775), clip_mask는 악화(0.765 / 0.753). train ρ 0.99 유지. 3-1~3-3 96회 모두 seed 노이즈 안 → 격차는 정규화가 아니라 입력 feature 문제로 결론. **하이퍼파라미터 실험은 여기서 종료(정현도)**, 기본값 0 유지. 상세는 `experiments/EXPERIMENTS.md` 3-3
-- [ ] **Multi-task head**: TES·PCS(+5개 세부점수)를 한 모델에서 같이 예측해 점수 간 상관을 활용
-- [ ] **고득점 과소추정 완화**: 고득점 샘플 가중 MSE, 또는 label distribution smoothing / balanced MSE
-- [ ] 각 개선의 ablation 표(ρ, MSE, 고득점 구간 MSE 별도)
+- [x] **Multi-task head**: TES·PCS를 한 모델에서 같이 예측 (Fis-V, `ours/train_fisv.py --multitask`, seed 3개, 2026-10-18). **결과: TES ρ 0.716 → 0.752 ± 0.007 (논문 0.766에 가장 근접), PCS는 0.846 → 0.832로 소폭 손해.** 상세 `experiments/EXPERIMENTS.md` 3-4
+- [x] **고득점 과소추정 완화**: 진단 결과 실제 문제는 예측이 평균 쪽으로 눌리는 것(TES 기울기 0.45, 하위 20%를 +8~10점 과대예측). LDS 가중 MSE(`--lds`)로 기울기 0.45 → 0.85, **PCS best MSE 6.73, TES(multi-task + LDS) 18.54로 둘 다 논문(7.17 / 19.44)보다 낮다.** 순위(ρ)는 단독으로는 개선 없음. 상세 3-4
+- [x] 각 개선의 ablation 표: `experiments/EXPERIMENTS.md` 3-4 (단일/multi-task/LDS/둘 다 × seed 3개, 보정 MSE·기울기 포함)
 - [ ] 원본 영상을 구할 수 있으면 pose branch를 여기서 먼저 시도해도 됨 (Phase 5 내용)
 
 ### Phase 4 · 배틀 데이터 구축 (11/10–11/24)
@@ -239,7 +239,7 @@ CUDA_VISIBLE_DEVICES=0 $MLAVL_PY main.py ...
 
 방침 (정현도): **모든 과정을 우리 배틀 데이터에 초점을 맞춰 한다. 미세조정 같은 가벼운 방식을 먼저 하고, 해결되지 않으면 모델을 새로 학습한다. 영상뿐 아니라 음악과 프롬프트도 브레이킹에 맞춘다.**
 
-1. [ ] 입력 맞추기: PAMFN과 같은 backbone·전처리로 배틀 feature 재추출(`clips_pamfn`) → zero-shot·미세조정 재평가
+1. [x] 입력 맞추기: 음악을 PAMFN 방식으로 재추출(`clips_pamfn`, 상관 0.45 → 0.89. 영상은 K400/K600 공간이 호환되어 유지) → **zero-shot 51.1%, 미세조정 52.9%로 변화 없음 (2026-10-18, round 12).** 입력 불일치는 실패 원인이 아니었다
 2. [ ] 가벼운 미세조정
    - MLAVL 본체: RG·Fis-V 가중치에서 시작해 배틀로 미세조정 (맞춘 feature로 다시)
    - 영상: Video Swin K600 뒤쪽 층을 BRACE 동작 구간 라벨(toprock/footwork/powermove 1,352개)로 미세조정

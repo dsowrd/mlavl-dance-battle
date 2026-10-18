@@ -162,6 +162,30 @@ Settings: clip_mask 0.1, clip_mask 0.25, input_dropout 0.3, input_dropout 0.5; 3
 
 Conclusion: **no gain from input-side regularisation either.** Input dropout 0.3/0.5 is a wash (−0.001 / −0.004 ρ, within seed std); clip masking *hurts* monotonically (−0.010 at 0.1, −0.022 at 0.25, driven by Ball/Clubs/Ribbon) and train ρ stays 0.99 regardless, so masking 25 % of clips still does not stop memorisation — the model fits through whichever clips remain. Across 3-1/3-2/3-3 (dropout, L2, input dropout, clip masking; 96 runs) nothing moves the RG average by more than seed noise, which strongly suggests the −0.07 gap to the paper is not a regularisation problem but an input problem (the public 1024-d PAMFN features vs whatever 768-d features the authors used). **Phase 3 hyper-parameter sweeps stop here** (정현도, 2026-10-13); the improvement story for the mid-term presentation moves to the task-level changes (multi-task head, high-score weighting) and to the battle domain (Phase 4/5), where the baseline is ours anyway. Keep `--clip_mask 0 --input_dropout 0` (defaults).
 
+### 3-4 · multi-task TES+PCS head and high-score weighting, Fis-V (2026-10-17/18)
+
+Diagnosis first (`tools/score_bias.py` on the reproduction checkpoints): test predictions are compressed toward the mean (slope prediction ~ label 0.51–0.54 for TES, 0.61–0.81 for PCS); the bottom fifth of TES is over-predicted by +8 to +10 points, which dominates the MSE. Trainer `ours/train_fisv.py` (upstream protocol: paper settings, test every epoch, best-ρ / best-MSE epoch per score; + linear calibration fitted on the training-set predictions of the best-ρ checkpoint → "calibrated MSE"). Queue `scripts/phase3_fisv.sh`: 6 settings × seeds 0–2 = 18 runs, all on GPU 0, 6 at a time, 2026-10-17 19:37 → 2026-10-18 ~21:00 (GPU 0 shared with the audio re-extraction and the battle runs), ~1.5 GB each.
+
+| setting | score | best ρ (mean ± std) | MSE at best ρ | calibrated MSE | best MSE | slope | last-epoch ρ |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| single-task (control, `st`) | TES | 0.716 ± 0.008 | 31.95 | 20.48 | 20.57 | 0.45 | 0.617 |
+| multi-task (`mt`) | TES | **0.752 ± 0.007** | 40.34 | 22.17 | 19.01 | 0.45 | 0.629 |
+| LDS (`lds`) | TES | 0.701 ± 0.011 | 59.77 | 23.96 | 20.55 | 0.85 | 0.631 |
+| multi-task + LDS (`mtlds`) | TES | 0.739 ± 0.017 | 32.95 | **19.13** | **18.54** | 0.81 | 0.631 |
+| single-task (control, `st`) | PCS | 0.846 ± 0.003 | 9.10 | 7.92 | 7.96 | 0.63 | 0.802 |
+| multi-task (`mt`) | PCS | 0.832 ± 0.006 | 8.92 | 7.53 | 7.59 | 0.64 | 0.797 |
+| LDS (`lds`) | PCS | **0.849 ± 0.005** | 8.56 | **7.01** | **6.73** | 0.72 | 0.809 |
+| multi-task + LDS (`mtlds`) | PCS | 0.844 ± 0.006 | 8.04 | 7.51 | 7.01 | 0.72 | 0.796 |
+| paper (Table 3) | TES / PCS | 0.766 / 0.863 | | | 19.44 / 7.17 | | |
+| our reproduction (upstream `main.py`, 3 seeds) | TES / PCS | 0.723 / 0.852 | | | 20.77 / 7.93 | | |
+
+Reading:
+- **Multi-task helps TES ranking: +0.036 ρ over the control (≈ 5 seed std), 0.752 vs paper 0.766**, the closest we have come. Predicting PCS from the same grade embeddings regularises the TES ranking. It costs PCS −0.014 (the PCS head is a second regressor on embeddings shaped by the TES loss).
+- **LDS fixes the compression** (slope 0.45 → 0.81–0.85 on TES, 0.63 → 0.72 on PCS) and lowers the MSE: PCS best MSE 6.73 and TES 18.54 (mtlds) are below the paper's 7.17 / 19.44. It does not improve ranking on its own (TES −0.015).
+- Post-hoc calibration alone gives most of the MSE gain for the unweighted models (TES 31.95 → 20.48), so part of the MSE gap is a scale problem, not a ranking problem.
+- Best per score: TES ρ from `mt`, PCS ρ and MSE from `lds`; `mtlds` is the best single compromise (ρ 0.739 / 0.844, avg 0.792 vs reproduction 0.788, best MSE 18.54 / 7.01).
+- Caveat (as for the reproduction): best-ρ / best-MSE epochs are chosen on the test set, as in the upstream protocol; last-epoch numbers (0.63 / 0.80) are much lower and show the same ordering is not guaranteed without early stopping.
+
 
 ## Phase 4/6 · battle winner prediction (BRACE, 81 battles)
 
@@ -395,3 +419,12 @@ Phase 5b step 1. Audio for all 282 battles re-extracted the PAMFN way (`tools/ba
 | all 18 ensemble | 51.1% (45.4–57.1) | 50.6% | 54.3% | 57.4% |
 
 Reading: matching the audio input to the training distribution changes nothing (all within ±1 point of round 11). The input mismatch was not why the reproduced models fail on battles; what they learned as "quality" does not transfer. Next: fine-tune with the matched features (`pamfn_all`, same setting as `d0_extra08_all`), then step 2 (backbones and prompts adapted to breaking).
+
+Fine-tuning with the matched features (`pamfn_all`: RG Ribbon s2 init, draft0 vocabulary, BRACE + 89 consistent extra battles, test on all 170, leave-one-year-out, 40 epochs, seeds 0–2 on GPU 0, 2026-10-18 13:39 → ~21:00, ~7 h per run because GPU 0 was shared):
+
+| features | seeds | seed ensemble (170) | p(acc ≤ 50%) | BRACE 81 | extra 89 |
+| --- | --- | --- | --- | --- | --- |
+| old `clips` (`d0_extra08_all`, round 5) | 53.5 / 53.5 / 53.5% | 54.7% (47.1–61.8) | 0.13 | 53.1% | 56.2% |
+| PAMFN-matched audio `clips_pamfn` | 54.1 / 55.3 / 54.1% | 52.9% (45.3–60.0) | 0.24 | 50.6% | 55.1% |
+
+Same chance level. Step 1 of Phase 5b (input matching) is closed: neither zero-shot nor fine-tuning moves. Moving on to step 2 (adapting the backbones and the prompts to breaking).
