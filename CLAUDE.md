@@ -250,6 +250,17 @@ CUDA_VISIBLE_DEVICES=0 $MLAVL_PY main.py ...
 - **결정 (2026-10-19):** 배틀 승패 학습은 여기서 멈춘다. 중간발표는 Phase 3 Fis-V 개선(multi-task TES ρ 0.752, LDS로 MSE가 논문보다 낮음)으로, 최종발표는 "AQA 모델을 배틀 판정에 옮길 때 무엇이 안 되고 왜 안 되는지"를 13라운드의 근거로 정리한 분석으로 한다
 - GPU는 0만 쓴다. 평가는 항상 연도 단위 교차검증, 우연(50%)과 내용 기반 규칙 대비 신뢰구간으로 판단한다
 
+### Phase 5c · 실제 심판 점수로 논문 그대로 점수 회귀 (2026-10-19 정현도 결정)
+
+정현도: "우연 수준이면 안돼. MLAVL 프레임워크는 따라가면서 우리 목적에 맞게 훈련. 입력·출력은 논문과 같게, 승패 대신 점수 방식으로, 논문 그대로 일단." 실패 원인 분석: 체조·피겨는 연기 하나에 절대 점수(난도표 + 감점)가 붙고 동작 종류가 점수를 거의 정하지만, 배틀은 두 댄서의 상대 비교·즉흥·같은 음악이고 라벨이 승패 1비트였다.
+
+- **라벨**: WDSF 공식 사이트가 2023년 이후 브레이킹 대회마다 라운드별·심판별 5개 항목(Technique, Vocabulary, Originality, Execution, Musicality) 점수를 공개한다(파리 올림픽과 같은 방식, 상대 슬라이더 %). `tools/battle/wdsf_scrape.py` → `wdsf_parse.py` → `/data/mlavl/datasets/wdsf/wdsf_judge_scores.csv`: 72개 대회, 1,579 배틀, 3,552 라운드, 심판 행 29,038. 5항목 체계 52개 대회 2,699 라운드(항목 합 = 총점 99.6%). 2022년 대회는 6항목 구체계(Technique, Variety, Performativity, Musicality, Creativity, Personality), Challenge Series는 총점만. 올림픽·OQS는 웹 페이지가 없고 PDF 결과집에만 있다
+- 부호: 페이지의 side 2 = blue(먼저 나오는 선수), 라운드 제목 (a:b)의 a = blue 표 수 (검증 100%)
+- **영상**: WDSF 공식 유튜브 @breakingforgold에 배틀 단위 영상 752개(2–6분). `tools/battle/wdsf_match_videos.py`로 선수 이름 + 도시/대회명 + 연도 매칭 → **317 배틀 매칭, 5항목 점수 270 배틀 652 라운드**(`wdsf_battle_videos.csv`)
+- **샘플 = 한 댄서의 한 라운드 차례**(영상 + 음악 feature) → 점수 = 심판 평균(총점, 5항목 각각). FS1000의 TES/PCS/SS처럼 항목별 학습. 지표 ρ / MSE, 대회 단위 분할
+- 남은 일: 영상 다운로드(약 15GB, 확인 후), 라운드·차례 분할과 blue/red 식별(WDSF 선수 프로필 사진 `/api/picture/person/<id>` 활용 가능), feature 추출, MLAVL 학습
+- 두 번째 논문과 결합해 개선해야 한다(과제 요구). 후보 Bailando(CVPR 2022)
+
 ### Phase 6 · 평가와 최종발표 (12/1, 12/8)
 
 - 지표: pairwise accuracy, AUC. 표본이 작으니 bootstrap 신뢰구간 포함
