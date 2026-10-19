@@ -260,8 +260,8 @@ CUDA_VISIBLE_DEVICES=0 $MLAVL_PY main.py ...
 - **샘플 = 한 댄서의 한 라운드 차례**(영상 + 음악 feature) → 점수 = 심판 평균(총점, 5항목 각각). FS1000의 TES/PCS/SS처럼 항목별 학습. 지표 ρ / MSE, 대회 단위 분할
 - 라벨 품질: 심판단을 반으로 나눈 split-half → 9명 평균 신뢰도(Spearman-Brown) 총점 0.87, 항목별 0.76–0.82
 - **진행 (2026-10-19 저녁 기준)**:
-  - 영상 다운로드(정현도 승인): 314개 중 298개 완료, `/data/mlavl/videos/wdsf/`(약 21GB, 720p H.264). 4 shard 병렬. 실패 16개는 `scripts/wdsf_retry_then_extract.sh`가 다운로드 종료 후 한 번 재시도하고 추가 추출까지 한다(로그 `logs/stdout/wdsf_retry_*.log`)
-  - feature 추출: `scripts/extract_wdsf.sh`(GPU 0, 2 shard, PAMFN 방식 Swin K600 + AST, round 12 음악 설정 `--tm_dim 64 --audio_sr 32000 --fbank_sr 32000`) → `/data/mlavl/features/WDSF/clips_pamfn/`. `extract_features_pamfn.py`에 `--set wdsf`(clips/ 선행 단계 없이 영상에서 32프레임 격자 생성)와 `--shard/--nshards` 추가. 103/298 완료 시점에 세션 종료, 계속 실행 중
+  - 영상 다운로드(정현도 승인): **314개 중 313개 완료**(1개 Zv1Nx759uG0은 YouTube 봇 확인으로 실패, 쿠키 없이는 불가). 처음 298개, `/data/mlavl/videos/wdsf/`(약 21GB, 720p H.264). 4 shard 병렬. 실패 16개는 `scripts/wdsf_retry_then_extract.sh`가 다운로드 종료 후 한 번 재시도하고 추가 추출까지 한다(로그 `logs/stdout/wdsf_retry_*.log`)
+  - feature 추출: `scripts/extract_wdsf.sh`(GPU 0, 2 shard, PAMFN 방식 Swin K600 + AST, round 12 음악 설정 `--tm_dim 64 --audio_sr 32000 --fbank_sr 32000`) → `/data/mlavl/features/WDSF/clips_pamfn/`. `extract_features_pamfn.py`에 `--set wdsf`(clips/ 선행 단계 없이 영상에서 32프레임 격자 생성)와 `--shard/--nshards` 추가. **313/313 추출 완료** (2026-10-19)
   - **/data 여유 53GB로 줄었다.** 추가 대용량 다운로드 전에 정리 필요
 - **WDSF 영상 형식 확인**: 배틀 1개 = 영상 1개, 무대 위 댄서 1명을 가깝게 잡음(배경 대부분 무대). 라운드 사이에 전광판에 심판 투표(blue/red 색, 이름)가 나온다. 규정집(WDSF BRRM v4): blue 쪽이 배틀을 시작(10초 안에 안 나오면 red), 이후 라운드 시작 순서는 "대회 형식에 따름" → 영상에서 확인 필요. 두 댄서가 같은 색 옷인 경우가 있어 외형만으로 구분이 어려울 수 있다
 - 남은 일: 라운드·차례 분할과 blue/red 식별(기존 `segment_turns.py` 차례 검출 + 점수 데이터의 라운드 수 2×n_rounds, 전광판 OCR 또는 WDSF 선수 프로필 사진 `/api/picture/person/<id>`), 샘플 구성, MLAVL 학습(논문 설정 그대로가 baseline)
