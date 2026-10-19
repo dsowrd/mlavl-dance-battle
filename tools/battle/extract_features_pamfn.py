@@ -36,7 +36,8 @@ from vst_k600 import load_vst_k600  # noqa: E402
 
 FFMPEG = os.environ.get('FFMPEG', '/home/irl/anaconda3/bin/ffmpeg')
 SETS = {'brace': ('/data/mlavl/videos/brace', '/data/mlavl/features/BRACE'),
-        'extra': ('/data/mlavl/videos/bcone_extra', '/data/mlavl/features/BCONE_EXTRA')}
+        'extra': ('/data/mlavl/videos/bcone_extra', '/data/mlavl/features/BCONE_EXTRA'),
+        'wdsf': ('/data/mlavl/videos/wdsf', '/data/mlavl/features/WDSF')}   # Phase 5c: no clips/ pass, see extract()
 MEAN = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1, 1)
 STD = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1, 1)
 
@@ -147,13 +148,28 @@ def extract(a):
     os.makedirs(os.path.join(feats, a.out), exist_ok=True)
     vm = None if a.audio_only else load_vst_k600().eval().to(device)
     ast = PamfnAST(a.tm_dim, device)
-    ids = sorted(f[:-4] for f in os.listdir(os.path.join(feats, 'clips')) if f.endswith('.npz'))
+    # Sets without an earlier clips/ pass (wdsf) take the clip grid from the video itself: clip i = frames
+    # [32 i, 32 i + 32) at the native fps, trailing partial clip dropped (same grid as extract_features.py).
+    standalone = not os.path.isdir(os.path.join(feats, 'clips'))
+    if standalone:
+        from extract_features import probe as probe_video
+        archive = os.path.join(videos, 'downloaded.txt')      # only finished downloads (yt-dlp archive)
+        ids = sorted(line.split()[1] for line in open(archive) if line.strip())
+        ids = [v for v in ids if os.path.exists(os.path.join(videos, v + '.mp4'))]
+    else:
+        ids = sorted(f[:-4] for f in os.listdir(os.path.join(feats, 'clips')) if f.endswith('.npz'))
+    ids = ids[a.shard::a.nshards]
     for k, vid in enumerate(ids):
         dst = os.path.join(feats, a.out, vid + '.npz')
         if os.path.exists(dst):
             continue
-        c = dict(np.load(os.path.join(feats, 'clips', vid + '.npz')))
-        T = len(c['rgb'])
+        if standalone:
+            fps, _, _, n_frames = probe_video(os.path.join(videos, vid + '.mp4'))
+            T = n_frames // 32
+            c = {'clip_start_frame': np.arange(T) * 32, 'fps': fps, 'clip_len': 32}
+        else:
+            c = dict(np.load(os.path.join(feats, 'clips', vid + '.npz')))
+            T = len(c['rgb'])
         path = os.path.join(videos, vid + '.mp4')
         if not a.audio_only:
             c['rgb'] = video_feats(vm, path, T, device).astype(np.float32)
@@ -175,5 +191,7 @@ if __name__ == '__main__':
                    help='keep the existing clips/ video features (K400 and K600 Swin-B share a feature space: Kinetics heads are '
                         'interchangeable on both PAMFN and our features) and only redo the audio the PAMFN way')
     p.add_argument('--out', default='clips_pamfn')
+    p.add_argument('--shard', type=int, default=0)
+    p.add_argument('--nshards', type=int, default=1)
     a = p.parse_args()
     probe(a) if a.mode == 'probe' else extract(a)

@@ -21,7 +21,7 @@
 | 날짜 | 수업 | 상태 / 할 일 |
 | --- | --- | --- |
 | 10/6, 10/13 | 논문 발표 1 | MLAVL 발표 (자료 완성·제출됨) |
-| 10/20 | 논문 survey | 두 번째 논문 확정 (Bailando, CVPR 2022 유력) |
+| 10/20 | 논문 survey | 두 번째 논문 **Bailando (CVPR 2022) 확정** (2026-10-19), 발표자료 완성·Drive 업로드 |
 | 10/26–10/31 | — | **학회 출장(삿포로). 사람은 자리를 비움 → 장시간 학습을 이때 돌린다** |
 | 10/27 | 논문 발표 2 | 출장과 겹침 → 11/3 발표로 교수님께 조정 요청 예정 (미확정) |
 | 11/3 | 논문 발표 2 | 두 번째 논문 발표 |
@@ -258,8 +258,16 @@ CUDA_VISIBLE_DEVICES=0 $MLAVL_PY main.py ...
 - 부호: 페이지의 side 2 = blue(먼저 나오는 선수), 라운드 제목 (a:b)의 a = blue 표 수 (검증 100%)
 - **영상**: WDSF 공식 유튜브 @breakingforgold에 배틀 단위 영상 752개(2–6분). `tools/battle/wdsf_match_videos.py`로 선수 이름 + 도시/대회명 + 연도 매칭 → **317 배틀 매칭, 5항목 점수 270 배틀 652 라운드**(`wdsf_battle_videos.csv`)
 - **샘플 = 한 댄서의 한 라운드 차례**(영상 + 음악 feature) → 점수 = 심판 평균(총점, 5항목 각각). FS1000의 TES/PCS/SS처럼 항목별 학습. 지표 ρ / MSE, 대회 단위 분할
-- 남은 일: 영상 다운로드(약 15GB, 확인 후), 라운드·차례 분할과 blue/red 식별(WDSF 선수 프로필 사진 `/api/picture/person/<id>` 활용 가능), feature 추출, MLAVL 학습
-- 두 번째 논문과 결합해 개선해야 한다(과제 요구). 후보 Bailando(CVPR 2022)
+- 라벨 품질: 심판단을 반으로 나눈 split-half → 9명 평균 신뢰도(Spearman-Brown) 총점 0.87, 항목별 0.76–0.82
+- **진행 (2026-10-19 저녁 기준)**:
+  - 영상 다운로드(정현도 승인): 314개 중 298개 완료, `/data/mlavl/videos/wdsf/`(약 21GB, 720p H.264). 4 shard 병렬. 실패 16개는 `scripts/wdsf_retry_then_extract.sh`가 다운로드 종료 후 한 번 재시도하고 추가 추출까지 한다(로그 `logs/stdout/wdsf_retry_*.log`)
+  - feature 추출: `scripts/extract_wdsf.sh`(GPU 0, 2 shard, PAMFN 방식 Swin K600 + AST, round 12 음악 설정 `--tm_dim 64 --audio_sr 32000 --fbank_sr 32000`) → `/data/mlavl/features/WDSF/clips_pamfn/`. `extract_features_pamfn.py`에 `--set wdsf`(clips/ 선행 단계 없이 영상에서 32프레임 격자 생성)와 `--shard/--nshards` 추가. 103/298 완료 시점에 세션 종료, 계속 실행 중
+  - **/data 여유 53GB로 줄었다.** 추가 대용량 다운로드 전에 정리 필요
+- **WDSF 영상 형식 확인**: 배틀 1개 = 영상 1개, 무대 위 댄서 1명을 가깝게 잡음(배경 대부분 무대). 라운드 사이에 전광판에 심판 투표(blue/red 색, 이름)가 나온다. 규정집(WDSF BRRM v4): blue 쪽이 배틀을 시작(10초 안에 안 나오면 red), 이후 라운드 시작 순서는 "대회 형식에 따름" → 영상에서 확인 필요. 두 댄서가 같은 색 옷인 경우가 있어 외형만으로 구분이 어려울 수 있다
+- 남은 일: 라운드·차례 분할과 blue/red 식별(기존 `segment_turns.py` 차례 검출 + 점수 데이터의 라운드 수 2×n_rounds, 전광판 OCR 또는 WDSF 선수 프로필 사진 `/api/picture/person/<id>`), 샘플 구성, MLAVL 학습(논문 설정 그대로가 baseline)
+- **두 번째 논문 = Bailando (CVPR 2022) 확정 (2026-10-19 정현도).** 발표자료 `2025198001_정현도_논문발표2.pptx` 완성(1차 양식, 7쪽, 약 6분 25초, 공식 데모 영상 4개 삽입, 노트에 대본). Google Drive 1차 발표와 같은 폴더(`1ldzwePCgc0fvhxp4RdszsZXgXWmKY_4O`)에 업로드. 표지 날짜는 제출 마감 기준 10/27
+- **결합 개선 계획 (MLAVL + Bailando)**: ① 2D 브레이킹 포즈(BRACE keypoint + Keypoint R-CNN 추정)로 Bailando식 choreographic memory(상·하체 VQ-VAE 코드북) 학습 → MAG² 동작 노드를 CLIP 텍스트 대신 코드북 벡터로 ② 텍스트→클립 전부 연결 대신 각 클립을 실제로 쓴 코드와만 연결(샘플별 그래프) ③ beat align(동작 비트·음악 비트 정렬)을 AVCF 입력에 ④ (선택) 상대 댄서 조건(Duolando식 cross-attention). 항목별 점수로 "어떤 모듈이 어떤 항목을 올렸나" ablation. 2D 토큰화는 X-Dancer(ICCV 2025) 참고. 음악 표현은 EDGE(CVPR 2023)의 Jukebox feature를 추가 실험 후보로
+- 참고한 후속 연구(발표 7쪽에 언급): Bailando++ (TPAMI 2023, 과제 학회 조건 밖), EDGE (CVPR 2023, 사용자 평가 147명), X-Dancer (ICCV 2025), Danceba (ICCV 2025), Lodge (CVPR 2024), Beat-It (ECCV 2024), Duolando (ICLR 2024, 듀엣 춤)
 
 ### Phase 6 · 평가와 최종발표 (12/1, 12/8)
 
