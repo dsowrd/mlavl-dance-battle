@@ -463,3 +463,16 @@ Battle features from these backbones (`scripts/extract_ft.sh`, 4 shards on GPU 0
 | `pamfn_lt_all` (learnable prompts) | 56.5 / 54.7 / 53.5% | 55.3% (47.6–62.4) | 0.10 | 55.6% | 55.1% |
 
 The prompts move little (relative drift 3.5 % on average, max 7 %, cosine to init ≥ 0.997) and the result stays within chance (+2.4 points, inside the seed spread). Nothing in the battle labels pulls the text anchors toward a different meaning.
+
+**Battle runs on the adapted features** (`scripts/phase5b_battle.sh`, same setting as `pamfn_all`, 3 seeds each, 9 runs on GPU 0, 2026-10-19 ~03:45 → 10:25; extraction `scripts/extract_ft.sh` ~1.5 h after the torch.stack fix):
+
+| run | features | seeds (170) | seed ensemble | p(acc ≤ 50%) | AUC | BRACE 81 | extra 89 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `d0_extra08_all` | whole frame K400 + HF AST | 53.5 / 53.5 / 53.5% | 54.7% (47.1–61.8) | 0.13 | 0.566 | 53.1% | 56.2% |
+| `pamfn_all` | + PAMFN audio | 54.1 / 55.3 / 54.1% | 52.9% (45.3–60.0) | 0.24 | 0.574 | 50.6% | 55.1% |
+| `pamfn_lt_all` | + learnable prompts | 56.5 / 54.7 / 53.5% | 55.3% (47.6–62.4) | 0.10 | 0.579 | 55.6% | 55.1% |
+| `ft_all` | move-fine-tuned dancer-crop Swin + PAMFN audio | 47.6 / 47.6 / 50.0% | 48.2% (40.6–55.9) | 0.71 | 0.491 | 42.0% | 53.9% |
+| `ftva_all` | + beat-fine-tuned AST | 44.7 / 48.2 / 44.7% | 45.9% (38.2–53.5) | 0.87 | 0.480 | 45.7% | 46.1% |
+| `ftva_lt_all` | + learnable prompts | 44.1 / 51.2 / 46.5% | 46.5% (38.8–53.5) | 0.84 | 0.478 | 46.9% | 46.1% |
+
+Reading: adapting the backbones to breaking makes them better at breaking *recognition* (move type 0.82 → 0.90, beat position 0.62 → 0.735) but not at judging: winner prediction drops to 46–48% (AUC < 0.5, all CIs contain 50%). Move type and beat position are the same kind of information for both dancers in a battle (both do toprock, footwork and power moves to the same music), so features specialised on them carry even less of what separates the two. Step 2 of Phase 5b is closed without a gain; 13 rounds and ~40 settings are all at chance on 170–280 battles.
