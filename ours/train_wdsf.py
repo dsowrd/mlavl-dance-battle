@@ -44,7 +44,9 @@ def event_of(comp):
     return re.sub(r'-(Adult|Youth)-Breaking.*', '', comp)
 
 
-def build_rows(target, min_clips=8):
+def build_rows(target, min_clips=8, feat='pamfn'):
+    """feat: 'pamfn' = Video Swin K600 (1024) + AST (768) per clip; 'pose' = the dancer's pose / kick-beat features
+    (114, tools/battle/wdsf_pose.py, z-scored over all turns, clips without pose dropped) + the same AST audio."""
     js = pd.read_csv(f'{D}/wdsf_judge_scores.csv')
     if target != 'total':
         js = js[(js.system == '5crit') & js.has_criteria]
@@ -55,20 +57,36 @@ def build_rows(target, min_clips=8):
         if t.video_id not in cache:
             d = np.load(f'{F}/clips_pamfn/{t.video_id}.npz')
             centre = (d['clip_start_frame'] + float(d['clip_len']) / 2) / float(d['fps'])
-            cache[t.video_id] = (d['rgb'].astype(np.float32), d['audio'].astype(np.float32), centre)
-        v, a, centre = cache[t.video_id]
-        m = (centre >= t.start_s) & (centre <= t.end_s)
+            ok = np.ones(len(centre), bool)
+            v = d['rgb'].astype(np.float32)
+            if feat == 'pose':
+                p = np.load(f'{F}/pose/{t.video_id}.npz')
+                v, ok = p['pose'].astype(np.float32), p['has_pose'] > 0
+            cache[t.video_id] = (v, d['audio'].astype(np.float32), centre, ok)
+        v, a, centre, ok = cache[t.video_id]
+        m = (centre >= t.start_s) & (centre <= t.end_s) & ok
         if m.sum() < min_clips:
             continue
         s = t.blue_score if t.athlete == 'blue' else -t.blue_score
         rows.append(dict(video_id=t.video_id, competition=t.competition, battle_id=t.battle_id, round=t.round,
                          athlete=t.athlete, source=t.source, event=event_of(t.competition), score=float(s),
                          v=v[m], a=a[m]))
+    if feat == 'pose' and rows:
+        allv = np.concatenate([r['v'] for r in rows])
+        mu, sd = allv.mean(0), allv.std(0) + 1e-6
+        for r in rows:
+            r['v'] = np.clip((r['v'] - mu) / sd, -5, 5).astype(np.float32)
     return rows
 
 
+FOLDS = os.path.join(ROOT, 'ours', 'wdsf', 'folds.json')
+
+
 def folds(rows, k=5):
-    """Events assigned to k folds, largest first into the currently smallest fold."""
+    """Event -> fold. Fixed in ours/wdsf/folds.json (frozen 2026-10-20 from the first runs: events assigned largest
+    first to the currently smallest fold) so that every run and feature set uses the same split."""
+    if os.path.exists(FOLDS):
+        return json.load(open(FOLDS))
     sizes = pd.Series([r['event'] for r in rows]).value_counts()
     load, assign = [0] * k, {}
     for ev, n in sizes.items():

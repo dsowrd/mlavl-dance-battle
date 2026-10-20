@@ -32,7 +32,8 @@ FFMPEG = os.environ.get('FFMPEG', '/home/irl/anaconda3/bin/ffmpeg')
 W, H = 960, 540
 MAXP = 6     # persons kept per frame (score >= 0.5, highest first); the dancer is selected offline (select_dancer)
 SETS = {'brace': ('/data/mlavl/videos/brace', '/data/mlavl/features/BRACE'),
-        'extra': ('/data/mlavl/videos/bcone_extra', '/data/mlavl/features/BCONE_EXTRA')}
+        'extra': ('/data/mlavl/videos/bcone_extra', '/data/mlavl/features/BCONE_EXTRA'),
+        'wdsf': ('/data/mlavl/videos/wdsf', '/data/mlavl/features/WDSF')}   # turns/ from wdsf_pose.py turns
 
 
 def dancing_clips(set_, features, vid, T):

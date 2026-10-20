@@ -274,6 +274,7 @@ CUDA_VISIBLE_DEVICES=0 $MLAVL_PY main.py ...
   - MLAVL은 두 형식(차례 하나 → 점수, 비교형) 모두 유의하지 않음(51–53%). 원인: 과적합(약 600 라운드, 400만 파라미터, 마지막 epoch)
   - 진행 중: 비교형 MLAVL + 안쪽 검증으로 epoch 선택(시험 fold 미사용), scratch와 RG Ribbon 초기화 (`scripts/phase5c_pairv.sh`, 로그 `logs/wdsf/pairv_*`)
   - **안쪽 검증 결과 (2026-10-20 저녁)**: 비교형 MLAVL Technique 54.4–55.6%(50% 대비만 유의, 기준선 대비 유의하지 않음), 총점 51–52%. **처음 보는 댄서 라운드에서는 37–41%로 떨어짐** → MLAVL이 선형 모델 이상으로 배운 건 주로 "댄서가 누구인가"(옷·체형). 다음 단계: MLAVL 입력에서 외형을 빼기 = Bailando식 포즈 코드북 입력(2차 개선 계획과 일치), 또는 저차원·외형 불변 입력. 그리고 손 라벨 추가
+  - **포즈 기반 입력 시도 (2026-10-20 밤 시작, 정현도: "포즈 기반으로 시도해보고, 데이터 문제 같으면 라벨링")**: `scripts/wdsf_pose.sh`(Keypoint R-CNN 3프레임마다, GPU 0 3 shard, 약 7시간 → BRACE 학습 댄서 선택기 → 클립별 포즈·kick-beat 114차원 `features/WDSF/pose/`) → 자동으로 `scripts/phase5c_pose_runs.sh`(포즈/영상 선형 차이 모델 + 포즈 입력 비교형 MLAVL 5개 + 엄격 평가, 로그 `logs/wdsf/phase5c_pose_runs.log`). fold 배정은 `ours/wdsf/folds.json`으로 고정(모든 실험 동일 분할). 판단 기준: 포즈 입력에서 처음 보는 댄서 라운드 정확도가 유지되고 기준선보다 유의하게 높은가
   - 라벨링 페이지에 배틀 38개 추가(23–60번, 미완료). 완료되면 손 라벨 60배틀 → 깨끗한 평가셋 약 150 라운드 + 검출기 재학습
 - **서버 주의 (2026-10-20)**: 루트 `/`가 100% 참(다른 프로젝트 ETRI `situation_regen_20261020/hf_cache`가 원인). 이 프로젝트 `ckpt/`는 `/data/mlavl/ckpt_live`로 옮기고 심볼릭 링크. `/data`는 여유 1.5TB로 늘었음
 - **데이터 후보 조사 (2026-10-20)**: 공개 학술 데이터셋 중 영상+심판 점수가 있는 스트릿댄스는 없음. WDSF 브레이킹 예선(PreSeed)은 절대 점수 0–100(2,855 공연, 심판단 신뢰도 0.94, `tools/battle/wdsf_preseed.py` → `wdsf_preselection_scores.csv`)이지만 예선 영상이 거의 공개되지 않음. HHI(Hip Hop International) 크루 안무는 절대 점수(P/S, 심판별)+공식 영상 약 2,385개로 MLAVL 설정과 맞지만 **"크루는 목적이 너무 달라서 보류" (정현도 2026-10-20)**
