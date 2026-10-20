@@ -553,3 +553,22 @@ Running: pairwise MLAVL with the epoch chosen on a held-out training event (inne
 from scratch (3 seeds total, Technique, Execution) and from the reproduced RG Ribbon checkpoint (total, Technique),
 `scripts/phase5c_pairv.sh`. Server note: `/` hit 100% (another project's HF cache); ckpt/ moved to /data/mlavl/ckpt_live
 (symlink).
+
+Pairwise MLAVL with the epoch chosen on a held-out training event (inner validation over epochs 5/10/20/30/40/60; the
+test fold never used for selection), `scripts/phase5c_pairv.sh`, strict evaluation:
+
+| run | target | round acc [95% CI] | p vs 50% | rule | p vs rule | hand-labelled | athletes unseen (n=51) |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| scratch, 3-seed ensemble | total | 0.510 [0.471, 0.550] | 0.32 | 0.543 | 0.88 | 0.558 | 0.510 |
+| scratch s0 | Technique | 0.544 [0.502, 0.586] | 0.023 | 0.523 | 0.27 | 0.644 | **0.412** |
+| scratch s0 | Execution | 0.536 [0.495, 0.577] | 0.044 | 0.494 | 0.11 | 0.622 | 0.529 |
+| RG Ribbon init s0 | total | 0.521 [0.480, 0.560] | 0.16 | 0.543 | 0.81 | 0.577 | 0.529 |
+| RG Ribbon init s0 | Technique | 0.556 [0.513, 0.598] | 0.006 | 0.523 | 0.15 | 0.578 | **0.373** |
+
+Reading: early stopping and the RG initialisation move MLAVL to 54–56% on Technique (above 50%, not above the position
+rule), but on rounds whose athletes never appear in training it falls to 37–41%: what MLAVL learns beyond the probe is
+largely who the dancer is (clothing / body in the Swin features), which does not transfer. The linear difference probe
+(PCA 8 of pooled features) has too little capacity for that shortcut and holds on unseen athletes (Technique 0.608,
+Execution 0.647). Validation choice is noisy (the held-out event is Hong Kong or Brisbane; Hong Kong is near or below 50%
+for every model). Next: take appearance out of MLAVL's input — pose-based tokens (the Bailando codebook plan) instead of
+whole-frame Swin, or appearance-invariant / low-dimensional inputs; more hand labels for a clean test set.
