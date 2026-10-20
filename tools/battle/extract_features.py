@@ -121,6 +121,7 @@ def main(a):
     os.makedirs(os.path.join(a.out, 'clips'), exist_ok=True)
     # finished downloads only: yt-dlp's intermediate files are '<id>.f137.mp4' / '<id>.temp.mp4' (ids have no '.')
     ids = a.ids or sorted(f[:-4] for f in os.listdir(a.videos) if f.endswith('.mp4') and '.' not in f[:-4])
+    ids = ids[a.shard::a.nshards]          # ids starting with '-' cannot go through --ids; shard the default list
     vm, fe, am = build_models(device)
     for k, vid in enumerate(ids):
         dst = os.path.join(a.out, 'clips', vid + '.npz')
@@ -147,4 +148,6 @@ if __name__ == '__main__':
     p.add_argument('--ids', nargs='*')
     p.add_argument('--clip-len', type=int, default=32)
     p.add_argument('--batch', type=int, default=8, help='clips per Video Swin forward')
+    p.add_argument('--shard', type=int, default=0)
+    p.add_argument('--nshards', type=int, default=1)
     main(p.parse_args())
