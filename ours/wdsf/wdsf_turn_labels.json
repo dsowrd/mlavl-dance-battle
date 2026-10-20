@@ -1,0 +1,642 @@
+{
+"yW00B9tDBPM": {
+"turns": [
+{
+"end": 57,
+"start": 14,
+"who": "red"
+},
+{
+"end": 103,
+"start": 59,
+"who": "blue"
+},
+{
+"end": 148,
+"start": 110,
+"who": "red"
+},
+{
+"end": 185,
+"start": 150,
+"who": "blue"
+}
+],
+"note": ""
+},
+"m9BviJMGlRE": {
+"turns": [
+{
+"end": 55,
+"start": 10,
+"who": "red"
+},
+{
+"end": 98,
+"start": 56,
+"who": "blue"
+},
+{
+"end": 152,
+"start": 107,
+"who": "red"
+},
+{
+"end": 194,
+"start": 153,
+"who": "blue"
+},
+{
+"end": 282,
+"start": 239,
+"who": "red"
+},
+{
+"end": 323,
+"start": 285,
+"who": "blue"
+}
+],
+"note": ""
+},
+"cMKGBjgTSVQ": {
+"turns": [
+{
+"end": 134,
+"start": 90,
+"who": "red"
+},
+{
+"end": 179,
+"start": 135,
+"who": "blue"
+},
+{
+"end": 216,
+"start": 188,
+"who": "red"
+},
+{
+"end": 254,
+"start": 220,
+"who": "blue"
+}
+],
+"note": ""
+},
+"LosZOkqMct8": {
+"turns": [
+{
+"end": 68,
+"start": 9,
+"who": "red"
+},
+{
+"end": 120,
+"start": 80,
+"who": "blue"
+},
+{
+"end": 157,
+"start": 125,
+"who": "red"
+},
+{
+"end": 200,
+"start": 163,
+"who": "blue"
+}
+],
+"note": ""
+},
+"KkchAG9cfFA": {
+"turns": [
+{
+"end": 55,
+"start": 5,
+"who": "red"
+},
+{
+"end": 95,
+"start": 55,
+"who": "blue"
+},
+{
+"end": 134,
+"start": 100,
+"who": "red"
+},
+{
+"end": 163,
+"start": 134,
+"who": "blue"
+}
+],
+"note": ""
+},
+"DQJakxSFnSQ": {
+"turns": [
+{
+"end": 48,
+"start": 5,
+"who": "red"
+},
+{
+"end": 89,
+"start": 50,
+"who": "blue"
+},
+{
+"end": 125,
+"start": 95,
+"who": "red"
+},
+{
+"end": 156,
+"start": 130,
+"who": "blue"
+}
+],
+"note": ""
+},
+"voEHM1WnM4w": {
+"turns": [
+{
+"end": 67,
+"start": 11,
+"who": "red"
+},
+{
+"end": 124,
+"start": 70,
+"who": "blue"
+},
+{
+"end": 182,
+"start": 136,
+"who": "red"
+},
+{
+"end": 230,
+"start": 184,
+"who": "blue"
+},
+{
+"end": null,
+"start": null,
+"who": null
+},
+{
+"end": null,
+"start": null,
+"who": null
+}
+],
+"note": "3라운드는 유튜브 영상에 없음"
+},
+"YWaH28r1IkQ": {
+"turns": [
+{
+"end": 43,
+"start": 10,
+"who": "red"
+},
+{
+"end": 90,
+"start": 46,
+"who": "blue"
+},
+{
+"end": 133,
+"start": 90,
+"who": "red"
+},
+{
+"end": 169,
+"start": 140,
+"who": "blue"
+},
+{
+"end": 210,
+"start": 175,
+"who": "red"
+},
+{
+"end": 257,
+"start": 215,
+"who": "blue"
+}
+],
+"note": ""
+},
+"NTZ1ShImMb4": {
+"turns": [
+{
+"end": 70,
+"start": 25,
+"who": "red"
+},
+{
+"end": 108,
+"start": 70,
+"who": "blue"
+},
+{
+"end": 163,
+"start": 118,
+"who": "red"
+},
+{
+"end": 209,
+"start": 163,
+"who": "blue"
+},
+{
+"end": 276,
+"start": 224,
+"who": "red"
+},
+{
+"end": 318,
+"start": 278,
+"who": "blue"
+}
+],
+"note": ""
+},
+"5vARVKlXBkY": {
+"turns": [
+{
+"end": 65,
+"start": 13,
+"who": "red"
+},
+{
+"end": 118,
+"start": 70,
+"who": "blue"
+},
+{
+"end": 175,
+"start": 124,
+"who": "red"
+},
+{
+"end": 221,
+"start": 180,
+"who": "blue"
+},
+{
+"end": 305,
+"start": 265,
+"who": "red"
+},
+{
+"end": 354,
+"start": 308,
+"who": "blue"
+}
+],
+"note": ""
+},
+"xPj_Zx3vGIw": {
+"turns": [
+{
+"end": 61,
+"start": 19,
+"who": "red"
+},
+{
+"end": 105,
+"start": 65,
+"who": "blue"
+},
+{
+"end": 164,
+"start": 114,
+"who": "red"
+},
+{
+"end": 205,
+"start": 164,
+"who": "blue"
+},
+{
+"end": 255,
+"start": 207,
+"who": "red"
+},
+{
+"end": 308,
+"start": 259,
+"who": "blue"
+}
+],
+"note": ""
+},
+"vLAqM1hOajY": {
+"turns": [
+{
+"end": 49,
+"start": 5,
+"who": "red"
+},
+{
+"end": 80,
+"start": 50,
+"who": "blue"
+},
+{
+"end": 126,
+"start": 84,
+"who": "red"
+},
+{
+"end": 156,
+"start": 126,
+"who": "blue"
+},
+{
+"end": 202,
+"start": 162,
+"who": "red"
+},
+{
+"end": 228,
+"start": 205,
+"who": "blue"
+}
+],
+"note": ""
+},
+"3lw0C5DO0WE": {
+"turns": [
+{
+"end": 110,
+"start": 65,
+"who": "red"
+},
+{
+"end": 161,
+"start": 112,
+"who": "blue"
+},
+{
+"end": 208,
+"start": 167,
+"who": "red"
+},
+{
+"end": 245,
+"start": 210,
+"who": "blue"
+}
+],
+"note": ""
+},
+"E1Xj3pjz3gM": {
+"turns": [
+{
+"end": 42,
+"start": 0,
+"who": "red"
+},
+{
+"end": 72,
+"start": 42,
+"who": "blue"
+},
+{
+"end": 120,
+"start": 80,
+"who": "red"
+},
+{
+"end": 153,
+"start": 120,
+"who": "blue"
+}
+],
+"note": ""
+},
+"T_ogd4Xg31Y": {
+"turns": [
+{
+"end": 38,
+"start": 5,
+"who": "red"
+},
+{
+"end": 73,
+"start": 39,
+"who": "blue"
+},
+{
+"end": 103,
+"start": 77,
+"who": "red"
+},
+{
+"end": 135,
+"start": 108,
+"who": "blue"
+}
+],
+"note": ""
+},
+"yxMQhYMptsA": {
+"turns": [
+{
+"end": 161,
+"start": 115,
+"who": "red"
+},
+{
+"end": 200,
+"start": 165,
+"who": "blue"
+},
+{
+"end": 233,
+"start": 201,
+"who": "red"
+},
+{
+"end": 273,
+"start": 247,
+"who": "blue"
+},
+{
+"end": 319,
+"start": 275,
+"who": "red"
+},
+{
+"end": 358,
+"start": 319,
+"who": "blue"
+}
+],
+"note": ""
+},
+"IOAafW3gTQU": {
+"turns": [
+{
+"end": 127,
+"start": 85,
+"who": "red"
+},
+{
+"end": 187,
+"start": 133,
+"who": "blue"
+},
+{
+"end": 259,
+"start": 204,
+"who": "red"
+},
+{
+"end": 305,
+"start": 260,
+"who": "blue"
+}
+],
+"note": ""
+},
+"d22nTBmpeBc": {
+"turns": [
+{
+"end": 62,
+"start": 8,
+"who": "red"
+},
+{
+"end": 104,
+"start": 64,
+"who": "blue"
+},
+{
+"end": 159,
+"start": 118,
+"who": "red"
+},
+{
+"end": 200,
+"start": 170,
+"who": "blue"
+}
+],
+"note": ""
+},
+"alyXK3n5W-8": {
+"turns": [
+{
+"end": 72,
+"start": 32,
+"who": "red"
+},
+{
+"end": 125,
+"start": 75,
+"who": "blue"
+},
+{
+"end": 164,
+"start": 134,
+"who": "red"
+},
+{
+"end": 216,
+"start": 169,
+"who": "blue"
+}
+],
+"note": ""
+},
+"dL-g7NpNua8": {
+"turns": [
+{
+"end": 90,
+"start": 40,
+"who": "red"
+},
+{
+"end": 126,
+"start": 95,
+"who": "blue"
+},
+{
+"end": 175,
+"start": 136,
+"who": "red"
+},
+{
+"end": 206,
+"start": 175,
+"who": "blue"
+}
+],
+"note": ""
+},
+"YqmoWhJ6znA": {
+"turns": [
+{
+"end": 64,
+"start": 23,
+"who": "red"
+},
+{
+"end": 105,
+"start": 72,
+"who": "blue"
+},
+{
+"end": 164,
+"start": 125,
+"who": "red"
+},
+{
+"end": 192,
+"start": 173,
+"who": "blue"
+},
+{
+"end": 298,
+"start": 262,
+"who": "red"
+},
+{
+"end": 340,
+"start": 303,
+"who": "blue"
+}
+],
+"note": ""
+},
+"ieW-2KiCSWE": {
+"turns": [
+{
+"end": 67,
+"start": 5,
+"who": "red"
+},
+{
+"end": 123,
+"start": 71,
+"who": "blue"
+},
+{
+"end": 185,
+"start": 132,
+"who": "red"
+},
+{
+"end": 247,
+"start": 195,
+"who": "blue"
+}
+],
+"note": ""
+}
+}
