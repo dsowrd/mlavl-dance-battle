@@ -476,3 +476,53 @@ The prompts move little (relative drift 3.5 % on average, max 7 %, cosine to ini
 | `ftva_lt_all` | + learnable prompts | 44.1 / 51.2 / 46.5% | 46.5% (38.8–53.5) | 0.84 | 0.478 | 46.9% | 46.1% |
 
 Reading: adapting the backbones to breaking makes them better at breaking *recognition* (move type 0.82 → 0.90, beat position 0.62 → 0.735) but not at judging: winner prediction drops to 46–48% (AUC < 0.5, all CIs contain 50%). Move type and beat position are the same kind of information for both dancers in a battle (both do toprock, footwork and power moves to the same music), so features specialised on them carry even less of what separates the two. Step 2 of Phase 5b is closed without a gain; 13 rounds and ~40 settings are all at chance on 170–280 battles.
+
+## Phase 5c · real judge scores (WDSF), score regression as in the paper (2026-10-19/20)
+
+Decision 2026-10-19 (정현도): "우연 수준이면 안돼 … 논문 그대로 점수 방식으로". Labels: WDSF per-round, per-judge comparative
+scores (overall % and 5 criteria, positive towards blue), `tools/battle/wdsf_scrape.py` / `wdsf_parse.py`; videos: official
+@breakingforgold battle uploads matched by name + event + year (`wdsf_match_videos.py`), 313 videos downloaded. Panel
+reliability (split-half, Spearman-Brown): total 0.87, criteria 0.76–0.82.
+
+### Turn segmentation (2026-10-20)
+
+Hand labels (정현도, review page https://claude.ai/artifact/Gh1wPRbMT7mmESY54etB3C): 22 battles from all 14 events, 106 turns
+(`ours/wdsf/wdsf_turn_labels.json`). **Red dances first in every round (48 / 48)** → athletes follow from the turn order.
+Turn length median 41 s (19–62 s). One video lacks round 3 (cut on YouTube).
+
+| detector (BiGRU of segment_turns.py, K400 + AST clips) | mean IoU | IoU ≥ 0.7 | IoU ≥ 0.5 | start err median | videos all IoU ≥ 0.5 |
+| --- | --- | --- | --- | --- | --- |
+| BRACE-trained, unchanged (4 videos by eye) | – | – | – | – | fails (8 s turns, no decode) |
+| WDSF labels only | 0.673 | 0.66 | 0.74 | 2.8 s | 0.59 |
+| BRACE detector fine-tuned on WDSF | 0.708 | 0.73 | 0.80 | 2.4 s | 0.73 |
+| joint BRACE + WDSF (3x) | 0.785 | 0.81 | 0.88 | 2.2 s | 0.77 |
+| joint + min turn 15 s | 0.812 | 0.83 | 0.91 | 1.9 s | 0.86 |
+| **joint + min turn 15 s + 3-seed ensemble** | **0.861** | **0.89** | **0.98** | **1.8 s** | **0.91** |
+
+Leave-one-event-out over the 22 labelled battles; the number of turns is fixed from the scores (2 × rounds). Applied to all
+313 videos (`wdsf_turn_detector.py apply --variant joint --n_seeds 3 --min_turn_s 15`): 1,520 turns, median 39 s
+(`ours/wdsf/wdsf_turns.csv`, hand labels where available).
+
+### MLAVL as in the paper: one turn → the round's score from its athlete's side (2026-10-20, `ours/train_wdsf.py`)
+
+RG settings (lr 1e-4, dropout 0.3, CE 0.1, N = 6), PAMFN-style features (clips_pamfn), breaking vocabulary draft0, clip_num 32,
+60 epochs, batch 32, 5 event-grouped folds (Adult + Youth of an event together), model after the last epoch, GPU 0
+(7 runs in parallel, 4 threads each, ~2.5 h). Reference: the second dancer of a round (blue) wins **54.4%** of rounds.
+
+| model | target | turns / rounds | rho (turn score) | MSE (zero-predictor) | round acc | hand-labelled rounds |
+| --- | --- | --- | --- | --- | --- | --- |
+| linear probe, one turn (PCA 64, ridge) | total | 1512 / 751 | 0.078 | 37.36 (37.08) | 0.562 | |
+| linear probe, difference of the two turns (PCA 8) | total | – / 751 | margin 0.154 | | 0.570 | |
+| same | Execution | – / 640 | margin 0.225 | | 0.583 | |
+| same | **Technique** | – / 640 | margin **0.298** | | **0.595** | |
+| MLAVL s0 / s1 / s2 | total | 1512 / 751 | 0.054 / 0.033 / 0.048 | 49.3 / 48.3 / 47.9 (37.08) | 0.535 / 0.510 / 0.523 | 0.50 / 0.64 / 0.56 (n=52) |
+| MLAVL s0 | Technique | 1288 / 640 | 0.045 | 5.03 (3.35) | 0.516 | |
+| MLAVL s0 | Vocabulary | 1288 / 641 | 0.041 | 2.81 (1.96) | 0.524 | |
+| MLAVL s0 | Originality | 1288 / 639 | 0.013 | 2.60 (1.67) | 0.507 | |
+| MLAVL s0 | Execution | 1288 / 640 | 0.023 | 3.91 (2.71) | 0.525 | |
+| MLAVL s0 | Musicality | 1288 / 641 | 0.042 | 2.90 (2.03) | 0.516 | |
+
+Reading: the paper's per-performance formulation does not work on comparative scores: round accuracy 51–53.5% is below the
+second-dancer rule (54.4%), MSE above the zero predictor, and folds swing from 38% (Hong Kong + Wuxi) to 64% (Brisbane +
+Shanghai Asian). The information is there, though: the antisymmetric probe on the difference of the two turns of a round
+reaches 59.5% (Technique, margin rho 0.30). Next: pairwise MLAVL (shared weights, loss on the round margin), `ours/train_wdsf_pair.py`.
