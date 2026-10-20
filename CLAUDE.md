@@ -265,6 +265,11 @@ CUDA_VISIBLE_DEVICES=0 $MLAVL_PY main.py ...
   - **/data 여유 53GB로 줄었다.** 추가 대용량 다운로드 전에 정리 필요
 - **WDSF 영상 형식 확인**: 배틀 1개 = 영상 1개, 무대 위 댄서 1명을 가깝게 잡음(배경 대부분 무대). 라운드 사이에 전광판에 심판 투표(blue/red 색, 이름)가 나온다. 규정집(WDSF BRRM v4): blue 쪽이 배틀을 시작(10초 안에 안 나오면 red), 이후 라운드 시작 순서는 "대회 형식에 따름" → 영상에서 확인 필요. 두 댄서가 같은 색 옷인 경우가 있어 외형만으로 구분이 어려울 수 있다
 - 남은 일: 라운드·차례 분할과 blue/red 식별(기존 `segment_turns.py` 차례 검출 + 점수 데이터의 라운드 수 2×n_rounds, 전광판 OCR 또는 WDSF 선수 프로필 사진 `/api/picture/person/<id>`), 샘플 구성, MLAVL 학습(논문 설정 그대로가 baseline)
+- **2026-10-20 진행**: 정현도가 22배틀(106차례) 손 라벨 → **모든 라운드에서 RED가 먼저 춤(48/48)**. WDSF 전용 차례 검출기(BRACE+WDSF 공동 학습, seed 3개 앙상블, 최소 15초) 대회 단위 검증 IoU 0.86 → 313개 영상 1,520차례(`ours/wdsf/wdsf_turns.csv`). 결과 상세는 `experiments/EXPERIMENTS.md` Phase 5c
+  - MLAVL 논문 그대로(차례 하나 → 점수): 라운드 승자 51–53.5%, 기준선("두 번째 댄서 승" 54.4%)보다 낮음. 원인: WDSF 점수는 두 댄서 사이 상대값
+  - 두 차례 feature 차이 선형 모델: Technique 59.5%(640 라운드). 손 라벨 라운드 65% vs 자동 분할 라운드 56% → **자동 분할 오류가 성능을 깎는다**
+  - 비교형 MLAVL(`ours/train_wdsf_pair.py`, 가중치 공유, 라운드 점수 차 손실) 학습 중. 홍콩+우시 fold는 모든 모델에서 우연 이하
+- **데이터 후보 조사 (2026-10-20)**: 공개 학술 데이터셋 중 영상+심판 점수가 있는 스트릿댄스는 없음. WDSF 브레이킹 예선(PreSeed)은 절대 점수 0–100(2,855 공연, 심판단 신뢰도 0.94, `tools/battle/wdsf_preseed.py` → `wdsf_preselection_scores.csv`)이지만 예선 영상이 거의 공개되지 않음. HHI(Hip Hop International) 크루 안무는 절대 점수(P/S, 심판별)+공식 영상 약 2,385개로 MLAVL 설정과 맞지만 **"크루는 목적이 너무 달라서 보류" (정현도 2026-10-20)**
 - **두 번째 논문 = Bailando (CVPR 2022) 확정 (2026-10-19 정현도).** 발표자료 `2025198001_정현도_논문발표2.pptx` 완성(1차 양식, 7쪽, 약 6분 25초, 공식 데모 영상 4개 삽입, 노트에 대본). Google Drive 1차 발표와 같은 폴더(`1ldzwePCgc0fvhxp4RdszsZXgXWmKY_4O`)에 업로드. 표지 날짜는 제출 마감 기준 10/27
 - **결합 개선 계획 (MLAVL + Bailando)**: ① 2D 브레이킹 포즈(BRACE keypoint + Keypoint R-CNN 추정)로 Bailando식 choreographic memory(상·하체 VQ-VAE 코드북) 학습 → MAG² 동작 노드를 CLIP 텍스트 대신 코드북 벡터로 ② 텍스트→클립 전부 연결 대신 각 클립을 실제로 쓴 코드와만 연결(샘플별 그래프) ③ beat align(동작 비트·음악 비트 정렬)을 AVCF 입력에 ④ (선택) 상대 댄서 조건(Duolando식 cross-attention). 항목별 점수로 "어떤 모듈이 어떤 항목을 올렸나" ablation. 2D 토큰화는 X-Dancer(ICCV 2025) 참고. 음악 표현은 EDGE(CVPR 2023)의 Jukebox feature를 추가 실험 후보로
 - 참고한 후속 연구(발표 7쪽에 언급): Bailando++ (TPAMI 2023, 과제 학회 조건 밖), EDGE (CVPR 2023, 사용자 평가 147명), X-Dancer (ICCV 2025), Danceba (ICCV 2025), Lodge (CVPR 2024), Beat-It (ECCV 2024), Duolando (ICLR 2024, 듀엣 춤)
