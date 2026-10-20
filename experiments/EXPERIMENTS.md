@@ -526,3 +526,30 @@ Reading: the paper's per-performance formulation does not work on comparative sc
 second-dancer rule (54.4%), MSE above the zero predictor, and folds swing from 38% (Hong Kong + Wuxi) to 64% (Brisbane +
 Shanghai Asian). The information is there, though: the antisymmetric probe on the difference of the two turns of a round
 reaches 59.5% (Technique, margin rho 0.30). Next: pairwise MLAVL (shared weights, loss on the round margin), `ours/train_wdsf_pair.py`.
+
+### Pairwise (comparative) formulation and strict evaluation (2026-10-20)
+
+Decision (정현도): "비교형으로 바꿔보자, 단 결과가 확실해야 해". Strict evaluation `ours/eval_pair.py`: round accuracy with a 95%
+bootstrap CI over battles, one-sided p against 50% and against the second-dancer rule for that score (share of rounds the
+blue = second dancer wins; it differs per criterion), subsets: hand-labelled turns, both athletes unseen in the training
+folds (no identity shortcut). Reference outside the video: athlete strength = mean margin at OTHER events → **63.6%**
+(769 video rounds; both athletes known in 725).
+
+| model | target | round acc [95% CI] | p vs 50% | rule | p vs rule | hand-labelled | athletes unseen (n=51) |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| linear probe, difference of the two turns (PCA 8, ridge, antisymmetric) | total | 0.570 [0.532, 0.607] | <0.0001 | 0.543 | 0.19 | 0.654 (n=52) | 0.647 |
+| same | **Technique** | **0.595 [0.554, 0.637]** | <0.0001 | 0.523 | **0.016** | 0.689 (n=45) | 0.608 |
+| same | **Execution** | **0.583 [0.542, 0.621]** | <0.0001 | 0.494 | **0.004** | 0.667 (n=45) | 0.647 (p50 0.010) |
+| same | Vocabulary / Originality / Musicality | 0.552 / 0.516 / 0.510 | | | | | |
+| pairwise MLAVL (`ours/train_wdsf_pair.py`, shared weights, 10·MSE on the margin + aux), last epoch, 3-seed ensemble | total | 0.515 [0.477, 0.553] | 0.22 | 0.543 | 0.85 | 0.462 | 0.549 |
+| same, s0 | Technique | 0.527 [0.485, 0.568] | 0.11 | 0.523 | 0.46 | 0.578 | 0.373 |
+| same, s0 | Execution | 0.523 [0.481, 0.566] | 0.14 | 0.494 | 0.19 | 0.467 | 0.451 |
+
+Reading: the video carries a reliable signal for the Technique and Execution margins (significant against chance and the
+position rule, holding on unseen athletes and stronger on clean hand-labelled turns), but MLAVL, in either formulation,
+does not extract it: its predictions spread 2.5x more than the probe's at lower correlation (pred sd 2.6 vs 1.0, r 0.08 vs
+0.15), i.e. over-fitting ~600 training rounds with ~4M parameters, evaluated after the last of 60 epochs.
+Running: pairwise MLAVL with the epoch chosen on a held-out training event (inner validation, no test-fold selection),
+from scratch (3 seeds total, Technique, Execution) and from the reproduced RG Ribbon checkpoint (total, Technique),
+`scripts/phase5c_pairv.sh`. Server note: `/` hit 100% (another project's HF cache); ckpt/ moved to /data/mlavl/ckpt_live
+(symlink).

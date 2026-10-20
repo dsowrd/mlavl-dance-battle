@@ -82,16 +82,25 @@ def main(a):
                           learn_text=False, action_list=a.action_list, init=a.init, pose=False)
     print(f'{len(P)} rounds, target {a.target}, S = {S:.2f}', flush=True)
     pred = np.full(len(P), np.nan)
+    E = sorted({int(e) for e in a.eval_epochs.split(',')} | {a.epochs})
+    pred_e = {e: np.full(len(P), np.nan) for e in E}
+    chosen = {}
     for f in range(a.folds):
         tr = [p for p in P if assign[p['event']] != f]
         te = [i for i, p in enumerate(P) if assign[p['event']] == f]
+        # inner validation (selects the epoch without looking at the test fold): the largest training event
+        tr_events = pd.Series([p['event'] for p in tr]).value_counts()
+        val_ev = tr_events.index[0] if a.inner_val else None
+        fit = [p for p in tr if p['event'] != val_ev]
+        val = [p for p in tr if p['event'] == val_ev]
         model = build_model(cfg, device)
-        opt = torch.optim.Adam(model.parameters(), lr=a.lr, weight_decay=1e-4)
+        opt = torch.optim.Adam(model.parameters(), lr=a.lr, weight_decay=a.wd)
         sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, a.epochs, eta_min=a.lr * 0.01)
         lf = mlavl_loss.LossFun(a.alpha, 1.0, alpha_ce=a.alpha_ce)
-        dl = DataLoader(PairDataset(tr, a.clip_num, S, a.seed + f), batch_size=a.batch, shuffle=True, num_workers=0,
+        dl = DataLoader(PairDataset(fit, a.clip_num, S, a.seed + f), batch_size=a.batch, shuffle=True, num_workers=0,
                         drop_last=True)
-        for ep in range(a.epochs):
+        val_acc = {}
+        for ep in range(1, a.epochs + 1):
             model.train()
             for vb, ab, vr, ar, t in dl:
                 B = vb.shape[0]
@@ -102,25 +111,36 @@ def main(a):
                 loss.backward()
                 opt.step()
             sched.step()
-        model.eval()
-        for i in te:
-            pred[i] = (turn_score(model, P[i]['b'], a.clip_num, device) - turn_score(model, P[i]['r'], a.clip_num, device)) * S
+            if ep in E:
+                model.eval()
+                for i in te:
+                    pred_e[ep][i] = (turn_score(model, P[i]['b'], a.clip_num, device)
+                                     - turn_score(model, P[i]['r'], a.clip_num, device)) * S
+                if val:
+                    pv = np.array([turn_score(model, p['b'], a.clip_num, device) - turn_score(model, p['r'], a.clip_num, device)
+                                   for p in val])
+                    val_acc[ep] = float((np.sign(pv) == np.sign([p['margin'] for p in val])).mean())
+        best = max(val_acc, key=lambda e: (val_acc[e], -e)) if val_acc else a.epochs
+        chosen[f] = dict(val_event=val_ev, val_acc=val_acc, epoch=best)
+        pred[te] = pred_e[best][te]
         m = np.array([P[i]['margin'] for i in te])
-        print(f'fold {f}: n_test={len(te)}  rho {spearmanr(m, pred[te])[0]:.3f}  round acc {(np.sign(pred[te]) == np.sign(m)).mean():.3f}',
-              flush=True)
+        print(f'fold {f}: n_test={len(te)}  val {val_ev} {val_acc}  -> epoch {best}  '
+              f'rho {spearmanr(m, pred[te])[0]:.3f}  round acc {(np.sign(pred[te]) == np.sign(m)).mean():.3f}', flush=True)
     df = pd.DataFrame([dict(competition=p['key'][0], battle_id=p['key'][1], round=p['key'][2], event=p['event'],
-                            source=p['source'], margin=p['margin']) for p in P]).assign(pred=pred)
+                            source=p['source'], margin=p['margin']) for p in P]).assign(
+        pred=pred, **{f'pred_e{e}': pred_e[e] for e in E})
     acc = float((np.sign(df.pred) == np.sign(df.margin)).mean())
     hand = df[df.source == 'hand']
     summary = dict(rho=float(spearmanr(df.margin, df.pred)[0]), round_acc=acc, n_rounds=len(df),
                    second_dancer_rule=float((df.margin > 0).mean()),
                    round_acc_hand=float((np.sign(hand.pred) == np.sign(hand.margin)).mean()) if len(hand) else float('nan'),
-                   n_rounds_hand=len(hand), S=S, args=vars(a))
+                   n_rounds_hand=len(hand), S=S, chosen=chosen,
+                   acc_at_epoch={e: float((np.sign(pred_e[e]) == np.sign(df.margin)).mean()) for e in E}, args=vars(a))
     out = os.path.join('logs/wdsf', a.name)
     os.makedirs(out, exist_ok=True)
     df.to_csv(os.path.join(out, 'predictions.csv'), index=False)
     json.dump(summary, open(os.path.join(out, 'summary.json'), 'w'), indent=1, default=float)
-    print('ALL:', {k: round(v, 3) if isinstance(v, float) else v for k, v in summary.items() if k != 'args'})
+    print('ALL:', {k: round(v, 3) if isinstance(v, float) else v for k, v in summary.items() if k not in ('args', 'chosen')})
 
 
 if __name__ == '__main__':
@@ -141,4 +161,7 @@ if __name__ == '__main__':
     p.add_argument('--alpha', type=float, default=1.0)
     p.add_argument('--alpha_ce', type=float, default=0.1)
     p.add_argument('--w_aux', type=float, default=1.0)
+    p.add_argument('--wd', type=float, default=1e-4)
+    p.add_argument('--eval_epochs', default='5,10,20,30,40')
+    p.add_argument('--inner_val', type=int, default=1, help='select the epoch on a held-out training event')
     main(p.parse_args())

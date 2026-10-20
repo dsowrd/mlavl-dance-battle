@@ -269,6 +269,12 @@ CUDA_VISIBLE_DEVICES=0 $MLAVL_PY main.py ...
   - MLAVL 논문 그대로(차례 하나 → 점수): 라운드 승자 51–53.5%, 기준선("두 번째 댄서 승" 54.4%)보다 낮음. 원인: WDSF 점수는 두 댄서 사이 상대값
   - 두 차례 feature 차이 선형 모델: Technique 59.5%(640 라운드). 손 라벨 라운드 65% vs 자동 분할 라운드 56% → **자동 분할 오류가 성능을 깎는다**
   - 비교형 MLAVL(`ours/train_wdsf_pair.py`, 가중치 공유, 라운드 점수 차 손실) 학습 중. 홍콩+우시 fold는 모든 모델에서 우연 이하
+- **비교형 전환 (2026-10-20 정현도: "비교형으로 바꿔보자, 단 결과가 확실해야 해")**. 엄격 평가 `ours/eval_pair.py`(배틀 단위 부트스트랩 95% CI, 50%·두 번째 댄서 기준선 대비 p값, 손 라벨/처음 보는 댄서 부분집합). 댄서 실력 기준선(다른 대회 성적) 63.6%는 영상 밖 정보라 참고용
+  - **확실한 결과**: 두 차례 feature 차이 선형 모델 Technique 59.5% [55.4, 63.7] (기준선 대비 p=0.016), Execution 58.3% [54.2, 62.1] (p=0.004), 처음 보는 댄서에서도 유지
+  - MLAVL은 두 형식(차례 하나 → 점수, 비교형) 모두 유의하지 않음(51–53%). 원인: 과적합(약 600 라운드, 400만 파라미터, 마지막 epoch)
+  - 진행 중: 비교형 MLAVL + 안쪽 검증으로 epoch 선택(시험 fold 미사용), scratch와 RG Ribbon 초기화 (`scripts/phase5c_pairv.sh`, 로그 `logs/wdsf/pairv_*`)
+  - 라벨링 페이지에 배틀 38개 추가(23–60번, 미완료). 완료되면 손 라벨 60배틀 → 깨끗한 평가셋 약 150 라운드 + 검출기 재학습
+- **서버 주의 (2026-10-20)**: 루트 `/`가 100% 참(다른 프로젝트 ETRI `situation_regen_20261020/hf_cache`가 원인). 이 프로젝트 `ckpt/`는 `/data/mlavl/ckpt_live`로 옮기고 심볼릭 링크. `/data`는 여유 1.5TB로 늘었음
 - **데이터 후보 조사 (2026-10-20)**: 공개 학술 데이터셋 중 영상+심판 점수가 있는 스트릿댄스는 없음. WDSF 브레이킹 예선(PreSeed)은 절대 점수 0–100(2,855 공연, 심판단 신뢰도 0.94, `tools/battle/wdsf_preseed.py` → `wdsf_preselection_scores.csv`)이지만 예선 영상이 거의 공개되지 않음. HHI(Hip Hop International) 크루 안무는 절대 점수(P/S, 심판별)+공식 영상 약 2,385개로 MLAVL 설정과 맞지만 **"크루는 목적이 너무 달라서 보류" (정현도 2026-10-20)**
 - **두 번째 논문 = Bailando (CVPR 2022) 확정 (2026-10-19 정현도).** 발표자료 `2025198001_정현도_논문발표2.pptx` 완성(1차 양식, 7쪽, 약 6분 25초, 공식 데모 영상 4개 삽입, 노트에 대본). Google Drive 1차 발표와 같은 폴더(`1ldzwePCgc0fvhxp4RdszsZXgXWmKY_4O`)에 업로드. 표지 날짜는 제출 마감 기준 10/27
 - **결합 개선 계획 (MLAVL + Bailando)**: ① 2D 브레이킹 포즈(BRACE keypoint + Keypoint R-CNN 추정)로 Bailando식 choreographic memory(상·하체 VQ-VAE 코드북) 학습 → MAG² 동작 노드를 CLIP 텍스트 대신 코드북 벡터로 ② 텍스트→클립 전부 연결 대신 각 클립을 실제로 쓴 코드와만 연결(샘플별 그래프) ③ beat align(동작 비트·음악 비트 정렬)을 AVCF 입력에 ④ (선택) 상대 댄서 조건(Duolando식 cross-attention). 항목별 점수로 "어떤 모듈이 어떤 항목을 올렸나" ablation. 2D 토큰화는 X-Dancer(ICCV 2025) 참고. 음악 표현은 EDGE(CVPR 2023)의 Jukebox feature를 추가 실험 후보로
