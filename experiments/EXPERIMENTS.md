@@ -572,3 +572,31 @@ largely who the dancer is (clothing / body in the Swin features), which does not
 Execution 0.647). Validation choice is noisy (the held-out event is Hong Kong or Brisbane; Hong Kong is near or below 50%
 for every model). Next: take appearance out of MLAVL's input — pose-based tokens (the Bailando codebook plan) instead of
 whole-frame Swin, or appearance-invariant / low-dimensional inputs; more hand labels for a clean test set.
+
+### Pose (appearance-free) input (2026-10-20/21)
+
+`scripts/wdsf_pose.sh`: Keypoint R-CNN every 3rd frame of the turns (GPU 0, 3 shards, ~6.5 h), BRACE-trained dancer
+selector, per-clip pose + kick-beat features (114-d, joints relative to the box / box height, speeds, beat alignment),
+z-scored; `scripts/phase5c_pose_runs.sh`: references and pairwise MLAVL with `--feat pose` (+ AST audio), inner-validation
+epochs; folds frozen (`ours/wdsf/folds.json`). Strict evaluation (95% CI over battles, p vs 50% and vs the per-score
+second-dancer rule):
+
+| model | target | all rounds [95% CI] | p vs rule | hand-labelled turns | athletes unseen (n=51) |
+| --- | --- | --- | --- | --- | --- |
+| linear diff, Swin + AST (reference) | Technique | 0.595 [0.555, 0.634] | 0.014 | 0.667 (n=45) | 0.647 |
+| linear diff, Swin + AST (reference) | Execution | 0.584 [0.544, 0.623] | 0.002 | 0.667 | 0.686 |
+| linear diff, pose + AST | total | 0.537 [0.499, 0.573] | 0.60 | 0.596 (n=52) | 0.588 |
+| linear diff, pose + AST | Technique | 0.578 [0.536, 0.619] | 0.047 | 0.689 | 0.627 |
+| linear diff, pose + AST | Execution | 0.562 [0.521, 0.602] | 0.013 | 0.622 | 0.588 |
+| linear diff, pose only | Technique / Execution | 0.553 / 0.534 | 0.20 / 0.11 | 0.600 / 0.644 | 0.549 / 0.667 |
+| **pairwise MLAVL, pose + AST**, 3-seed ensemble | total | 0.525 [0.487, 0.562] | 0.77 | **0.769 [0.653, 0.880]** (n=52, p50 < 0.0001) | 0.510 |
+| **pairwise MLAVL, pose + AST** s0 | Technique | 0.539 [0.498, 0.581] | 0.32 | 0.556 | 0.529 |
+| **pairwise MLAVL, pose + AST** s0 | **Execution** | **0.564 [0.527, 0.602]** | **0.013** | **0.756 [0.609, 0.884]** (n=45) | **0.588** |
+
+Reading: (1) with pose input MLAVL no longer collapses on unseen athletes (Execution 0.588 vs 0.37–0.41 with Swin), and
+pose-MLAVL Execution is the first MLAVL result above the position rule (p = 0.013). (2) The gap between hand-labelled
+and automatically segmented turns is now large: total 0.77 vs 0.51, Execution 0.76 vs 0.55. Pose features are computed
+on the dancer inside the turn window, so a segmentation error (window shifted onto the other athlete or onto the
+walk-in) corrupts the input far more than for whole-frame features. Hand-labelled rounds are few (45–52, 19–22 battles),
+so the 0.77 needs a larger clean set before it is a claim → label the remaining 38 battles (review page), retrain the
+turn detector, re-run pose features and the same evaluation.
