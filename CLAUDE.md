@@ -150,7 +150,7 @@ CUDA_VISIBLE_DEVICES=0 $MLAVL_PY main.py ...
 
 ### Phase 0 · 세팅 (10/12–10/18)
 
-- [x] 서버에 프로젝트 폴더 생성. 7절 방식대로 MLAVL을 clone하고 **정현도 개인 GitHub의 private 저장소**에 연결 (`/home/irl/Workspace_Hyundo/mlavl-dance-battle`, origin = `dsowrd/mlavl-dance-battle`, upstream = XuHuangbiao/MLAVL, 작업 브랜치 `dev`)
+- [x] 서버에 프로젝트 폴더 생성. 7절 방식대로 MLAVL을 clone하고 **정현도 개인 GitHub의 private 저장소**에 연결 (`/home/irl/Workspace_Hyundo/breaking-judge`, origin = `dsowrd/breaking-judge`, upstream = XuHuangbiao/MLAVL, 작업 브랜치 `dev`)
 - [x] README의 출처·크레딧 섹션(7절)을 첫 커밋부터 넣는다 (2026-10-11)
 - [x] conda 환경 구성, `torch.cuda.is_available()`로 GPU 0/1/3 확인 (2026-10-11, 4절 참조)
 - [x] 3절의 함정 처리: `--dataset` 인자, CLIP 제거 + 텍스트 feature 로드(`--text_feature`, `--use_clip`), CE 가중치 인자(`--alpha_ce`). `scripts/smoke_test.py`로 RG/FS1000 설정 forward+backward 확인
@@ -315,7 +315,7 @@ CUDA_VISIBLE_DEVICES=0 $MLAVL_PY main.py ...
 ### 어디에 두나
 
 - **정현도 개인 GitHub 계정**에 둔다. 연구실 계정(`irlab6342`)이나 조직(`irl-cbnu`)에는 올리지 않는다
-- 저장소 이름 예시: `mlavl-dance-battle` (최종 이름은 정현도가 정함)
+- 저장소 이름: `breaking-judge` (2026-10-21 정현도 결정, 구 이름 `mlavl-dance-battle`)
 - **처음에는 private으로 둔다.** 확인 결과 공식 MLAVL 저장소와 그 기반인 GDLT 저장소에는 LICENSE 파일이 없다. 라이선스가 없는 코드는 기본적으로 저작권이 원 저자에게 있다
 - 나중에 public으로 바꾸려면 둘 중 하나를 택한다:
   1. MLAVL 저자에게 연락해 공개 허락이나 라이선스 추가를 요청한다
@@ -324,10 +324,10 @@ CUDA_VISIBLE_DEVICES=0 $MLAVL_PY main.py ...
 ### 원본 이력을 그대로 보존
 
 ```bash
-git clone https://github.com/XuHuangbiao/MLAVL.git mlavl-dance-battle
-cd mlavl-dance-battle
+git clone https://github.com/XuHuangbiao/MLAVL.git breaking-judge
+cd breaking-judge
 git remote rename origin upstream                  # 원 저자 저장소
-git remote add origin git@github.com:<개인계정>/mlavl-dance-battle.git
+git remote add origin git@github.com:<개인계정>/breaking-judge.git
 git push -u origin main                            # 원 저자 커밋 이력이 그대로 올라감
 git checkout -b dev                                # 우리 작업은 dev 브랜치에서
 ```
@@ -414,7 +414,7 @@ MLAVL BibTeX (공식 README에서 그대로 가져옴):
 - [x] 외부 인터넷: 가능 (4절). NAS: 미마운트, 주소 필요. HDD: `/dev/sdb1` 미마운트, 사람이 sudo로 마운트해야 함 (4절)
 - [ ] 올림픽 배틀 전체 영상 확보 가능 여부 (조사 중)
 - [ ] 브레이킹 무브 어휘 최종 목록: 초안 `ours/vocab/action-label_BREAKING.csv` 작성됨, 정현도 검토 필요
-- [x] GitHub: 계정 `dsowrd`, 저장소 `mlavl-dance-battle`(private), 인증은 SSH deploy key(`~/.ssh/mlavl_deploy`, alias `github-mlavl`). 로컬 git identity는 `dsowrd <dsowrd123@gmail.com>`로 설정(저장소 로컬 config). GitHub 계정 이메일과 다르면 커밋이 계정에 연결되지 않으니 확인
+- [x] GitHub: 계정 `dsowrd`, 저장소 `breaking-judge`(private, 2026-10-21 `mlavl-dance-battle`에서 이름 변경), 인증은 SSH deploy key(`~/.ssh/mlavl_deploy`, alias `github-mlavl`). 로컬 git identity는 `dsowrd <dsowrd123@gmail.com>`로 설정(저장소 로컬 config). GitHub 계정 이메일과 다르면 커밋이 계정에 연결되지 않으니 확인
 - [x] 저장소 공개 여부: **당분간 private 유지** (정현도, 2026-10-11). public 전환과 저자 연락은 나중에 다시 결정
 
 ### 조사 결과 (2026-10-11, 웹 조사. 다운로드는 아직 하지 않음)

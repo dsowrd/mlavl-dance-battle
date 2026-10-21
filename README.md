@@ -1,4 +1,4 @@
-# mlavl-dance-battle: reproducing MLAVL and extending it to dance-battle judging
+# breaking-judge: reproducing MLAVL and extending it to breaking battle judging
 
 This repository builds on **MLAVL** (Xu et al., "Language-Guided Audio-Visual Learning for Long-Term Sports Assessment", CVPR 2025, [code](https://github.com/XuHuangbiao/MLAVL)). Most of the model code is theirs. This project reproduces their results and extends the method to 1-vs-1 dance battle judging as a course project (Deep Learning, Dept. of Intelligent Robot Engineering, CBNU, Fall 2026). The upstream commit history is preserved; `main` tracks upstream and our work lives on `dev`.
 

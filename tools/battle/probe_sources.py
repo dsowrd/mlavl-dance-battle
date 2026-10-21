@@ -1,8 +1,8 @@
 """Linear probes per information source (dancer-crop CLIP, BRACE pose, Swin video, AST audio), split by the
 winner's vote count, and training on clear decisions only (ours, Phase 6). Run: $MLAVL_PY -I tools/battle/probe_sources.py"""
 import os, sys, numpy as np, pandas as pd
-sys.path.insert(0, '/home/irl/Workspace_Hyundo/mlavl-dance-battle'); sys.path.insert(0, '/home/irl/Workspace_Hyundo/mlavl-dance-battle/tools/battle')
-os.chdir('/home/irl/Workspace_Hyundo/mlavl-dance-battle')
+sys.path.insert(0, '/home/irl/Workspace_Hyundo/breaking-judge'); sys.path.insert(0, '/home/irl/Workspace_Hyundo/breaking-judge/tools/battle')
+os.chdir('/home/irl/Workspace_Hyundo/breaking-judge')
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
